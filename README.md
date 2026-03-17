@@ -5,4 +5,4 @@ Commit changes:
 git add . (oder files zum commiten)  
 git commit -m "<commit message>"  
 git push (pushed zu remote)  
-
+git pull (pulled von remote)  
