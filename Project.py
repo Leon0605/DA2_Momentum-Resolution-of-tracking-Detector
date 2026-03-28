@@ -33,12 +33,12 @@ class particle:
 
 
 def cellsHit(p, z, zMagnet=None):
-    if magnet is None:
+    if zMagnet is None:
         x = p.x0 + p.s0 * (z) #calculate x position
     else:
         x = p.xMagnet + p.sMagnet * ((z - zMagnet)) #calculate x position after magnet
     p.xactual.append(x) 
-    p.layers.append(math.floor(x/cellWidth)+1) #calculate and store cell index
+    p.layers.append(np.floor(x/cellWidth)+1) #calculate and store cell index
 
 
 def generatePoints(p, n):
@@ -52,17 +52,19 @@ def generatePoints(p, n):
 
 # Magnet class
 class Magnet:
-    def __init__(self, L, B):
+    def __init__(self, L, B, zMagnet):
         self.L = L
         self.B = B
+        self.z_beginn = zMagnet
+        self.z_end = zMagnet+self.L
 
     # generate change of true trajectory
-    def change(self, p, zMagnet):
+    def change(self, p):
         # modpint of circle
-        rho = (p.p_T / (abs(q) * self.B)) / 1e-4
+        rho = (p.p_T / p.q * self.B) / 1e-4
         norm = np.sqrt(1.0 + p.s0**2)
         M_x  = p.x0 + rho * (-(1.0 / norm) * p.q)
-        M_z  = zMagnet    + rho * ((p.s0  / norm) * p.q)   # z_ein = 0 (Magnetanfang)
+        M_z  = self.z_beginn    + rho * ((p.s0  / norm) * p.q)
 
         # xMagnet
         dz        = self.L - M_z
@@ -90,7 +92,7 @@ class Magnet:
         z_mag_entry = n_before * delta_z
         z_i = np.linspace(z_mag_entry, z_mag_entry + self.L, resolution)
 
-        rho = (p_T / (abs(q) * self.B)) / 1e-4
+        rho = (p_T / q * self.B) / 1e-4
         norm = np.sqrt(1.0 + s_entry**2)
         M_x  = x_entry     + rho * (-(1.0 / norm) * q)
         M_z  = z_mag_entry + rho * ((s_entry / norm) * q)
@@ -116,13 +118,13 @@ def pull(x_reco, x_gen, unc_x_reco):
 # Detector setup
 z_detectors = np.array([i * delta_z for i in range(0, n_before+1)] + [delta_z*n_before+L + i * delta_z for i in range(0, n_after+1)])
 z_0 = 0
-zMagnet_index = n_before
+zbegin_index = n_before
 z_end = z_detectors[-1]
 
 
 ### Warm-up Exercise
 p_T_true = 0.3
-magnet_10_0_5 = Magnet(L, B)
+magnet_10_0_5 = Magnet(L, B, n_before*zbegin_index)
 
 # a) Waiting for Code of Part 3 (WORK IN PROGRESS)
 particle_warmup = particle(p_T_true)
@@ -130,9 +132,9 @@ magnet_10_0_5.change(particle_warmup) # calculate change because of magnet
 
 
 # extrapolate trajectory 
-cellsHit(particle_warmup, z_detectors[:zMagnet_index]) # calculate hits before magnets
-cellsHit(particle_warmup, z_detectors[zMagnet_index+1:], zMagnet=z_detectors[zMagnet_index+1]) # calculate hits after magnet
-curve_interpolation_warmup = magnet_10_0_5.change_interpolation(particle_warmup.xactual[zMagnet_index], particle_warmup.s0, particle_warmup.xMagnet, particle_warmup.sMagnet, particle_warmup.p_T, particle_warmup.q)
+cellsHit(particle_warmup, z_detectors[zbegin_index]) # calculate hits before magnets
+cellsHit(particle_warmup, z_detectors[zbegin_index+1:], zMagnet=z_detectors[zbegin_index+1]) # calculate hits after magnet
+curve_interpolation_warmup = magnet_10_0_5.change_interpolation(particle_warmup.xactual[zbegin_index], particle_warmup.s0, particle_warmup.xMagnet, particle_warmup.sMagnet, particle_warmup.p_T, particle_warmup.q)
 
 
 
