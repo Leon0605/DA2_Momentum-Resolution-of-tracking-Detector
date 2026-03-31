@@ -4,34 +4,17 @@ import math
 from scipy import optimize
 from sklearn.linear_model import LinearRegression
 
-class particle:
-
-    def __init__(self):
-        self.z0 = 0
-        self.x0 = np.random.normal(0,1,None)
-        self.x0reco = 0
-        self.x0recoUncert = 0
-        self.s0 = np.tan(np.random.normal(0,0.1,None))
-        self.s0reco = 0
-        self.s0recoUncert = 0
-        self.t0 = 0
-        self.xactual = []
-        self.layers = []
-
-#Setup Parameters
-n=5 #number of layers
-dZ = 20 #distance between layers 2cm = 20mm
-
 
 # Experiment Setup
 n_before = 5        # number of detection planes before magnet
 n_after = 3         # number of detection planes after magnet
-delta_z = 20        # distance detector planes
+dZ = 20             # distance detector planes (2cm = 20mm)
 cellWidth = 0.5     # width of detection plane cells in 100 mikrometers (1mm is 1 then, 1cm is 10)
 L = 100             # Magnet Lenght
 B = 0.5             # strength of magnetic field in T
 
 
+# particle class
 class particle:
 
     def __init__(self, p_T):
@@ -54,28 +37,6 @@ class particle:
         # randomly assign particle charge
         self.q = np.random.choice([-1, 1])
 
-
-#calculate and store cell index
-def cellsHit(p, z, zMagnet=None):
-    if zMagnet is None:
-        x = p.x0 + p.s0 * (z) #calculate x position
-    else:
-        x = p.xMagnet + p.sMagnet * ((z - zMagnet)) #calculate x position after magnet
-    p.xactual.extend(x.tolist())
-    if(x >= 0):
-        p.layers += list(np.floor(x/cellWidth)+1)
-    else:
-        p.layers += list(np.floor(x/cellWidth)) #calculate and store cell index
-
-
-def generatePoints(p, n):
-    genX = []
-    for i in range(0,n):
-        genX.append(np.random.uniform(p.layers[i]-1*cellWidth, (p.layers[i])*cellWidth)) #generate data from hit cell index by drawing from cell interval as uniform distribution
-    return np.array(genX)
-
-
-##### 4 Momentum Resolution #####
 
 # Magnet class
 class Magnet:
@@ -116,7 +77,7 @@ class Magnet:
 
     # interpolate change trajectory
     def change_interpolation(self, x_entry, s_entry, p_T, q, resolution=100):
-        z_mag_entry = n_before * delta_z
+        z_mag_entry = n_before * dZ
         z_i = np.linspace(z_mag_entry, z_mag_entry + self.L, resolution)
 
         rho = (p_T / q * self.B) / 1e-4
@@ -137,35 +98,24 @@ class Magnet:
         return (p_T_reconstructed, unc_p_T_reco)
 
 
-# pull function
-def pull(x_reco, x_gen, unc_x_reco):
-    return (x_reco - x_gen)/unc_x_reco
+#calculate and store cell index
+def cellsHit(p, z, zMagnet=None):
+    if zMagnet is None:
+        x = p.x0 + p.s0 * (z) #calculate x position
+    else:
+        x = p.xMagnet + p.sMagnet * ((z - zMagnet)) #calculate x position after magnet
+    p.xactual.extend(x.tolist())
+    if(x >= 0):
+        p.layers += list(np.floor(x/cellWidth)+1)
+    else:
+        p.layers += list(np.floor(x/cellWidth)) #calculate and store cell index
 
 
-# Detector setup
-z_detectors = np.array([i * delta_z for i in range(0, n_before+1)] + [delta_z*n_before+L + i * delta_z for i in range(0, n_after+1)])
-z_0 = 0
-zbegin_index = n_before
-z_end = z_detectors[-1]
-
-print(z_detectors)
-
-
-### Warm-up Exercise
-p_T_true = 0.3
-magnet_10_0_5 = Magnet(L, B, n_before*zbegin_index)
-
-# a) Waiting for Code of Part 3 (WORK IN PROGRESS)
-particle_warmup = particle(p_T_true)
-magnet_10_0_5.change(particle_warmup) # calculate change because of magnet
-
-
-# extrapolate trajectory 
-cellsHit(particle_warmup, z_detectors[:zbegin_index]) # calculate hits before magnets
-cellsHit(particle_warmup, z_detectors[zbegin_index+1:], zMagnet=z_detectors[zbegin_index+1]) # calculate hits after magnet
-print(particle_warmup.xactual)
-
-curve_interpolation_warmup = magnet_10_0_5.change_interpolation(particle_warmup.xactual[zbegin_index], particle_warmup.s0, particle_warmup.xMagnet, particle_warmup.sMagnet, particle_warmup.p_T, particle_warmup.q)
+def generatePoints(p, n):
+    genX = []
+    for i in range(0,n):
+        genX.append(np.random.uniform(p.layers[i]-1*cellWidth, (p.layers[i])*cellWidth)) #generate data from hit cell index by drawing from cell interval as uniform distribution
+    return np.array(genX)
 
 
 def generatePoints(p):
@@ -176,63 +126,13 @@ def generatePoints(p):
     return np.array(genX), np.array(uncertainties)
 
 
-
-
-# b) Waiting for code of Part 3 but code for reconstruction done (WORK IN PROGRESS)
-s_reco_before = 0
-s_reco_after = 0
-q = 0
-
-p_T_reco = magnet_10_0_5.reconstruct_momentum(q, s_reco_before, s_reco_after)
-
-
-### Estimate momentum resolution (vectorized with numpy)
-## calculate histograms of differences
-# prepare plots
-fig, ax = plt.subplots(2, 8)
-ax = ax.flatten()
-
-# particle informations
-s_reco_before_vec = 0
-s_reco_after_vec = 0
-q_vec = 0
-
-# calculate reconstruction of momentum and the uncertainty
-p_T_reco_vec, unc_vec = magnet_10_0_5.reconstruct_momentum(q, s_reco_before, s_reco_after)
-
-# calculate differences between reco and true
-p_T_diff = p_T_reco_vec - p_T_true
-
-# calculate histogram, mean, std
-hist, bins = np.histogram(p_T_diff, bins=50)
-mean = np.mean(p_T_diff)
-std = np.std(p_T_diff)
-
-# plot histogram
-ax[0].hist(p_T_diff, bins=50, kde=True, color='skyblue', edgecolor='black')
-
-## calculate histogram  of pulls
-# prepare plots
-fig, ax = plt.subplots(2, 8)
-ax = ax.flatten()
-
-# calculate pull
-p_T_pulls = pull(p_T_reco_vec, p_T_true, unc_vec)
-
-# calculate histogram, mean, std
-hist, bins = np.histogram(p_T_pulls, bins=50)
-mean = np.mean(p_T_pulls)
-std = np.std(p_T_pulls)
-
-# plot histogram
-ax[0].hist(p_T_pulls, bins=50, kde=True, color='skyblue', edgecolor='black')
 def line(z, slope, intercept):
     return slope * z + intercept
 
 
 def run(p1):
     Z = []
-    for i in range(0, n):
+    for i in range(0, n_before):
         z = (i+1)*dZ
         Z.append(z)
         cellsHit(p1, z)
@@ -246,7 +146,7 @@ def run(p1):
     return pulls0, pullx0
 
 def plot_trajectories(p1, X, Z, uncertainties):
-    z_line = np.linspace(0, n*dZ, 10)
+    z_line = np.linspace(0, n_before*dZ, 10)
     x_true_line = p1.x0 + p1.s0 * z_line
     x_reco_line = p1.x0reco + p1.s0reco * z_line
 
@@ -305,55 +205,90 @@ def pull(p):
     pullx0 = (p.x0reco - p.x0) / p.x0recoUncert
     return pulls0, pullx0
 simulation()
-## b) Waiting for code of Part 3 but code for reconstruction done (WORK IN PROGRESS)
-#s_reco_before = 0
-#s_reco_after = 0
-#q = 0
-#
-#p_T_reco = magnet_10_0_5.reconstruct_momentum(q, s_reco_before, s_reco_after)
-#
-#
-#### Estimate momentum resolution (vectorized with numpy)
-### calculate histograms of differences
-## prepare plots
-#fig, ax = plt.subplots(2, 8)
-#ax = ax.flatten()
-#
-## particle informations
-#s_reco_before_vec = 0
-#s_reco_after_vec = 0
-#q_vec = 0
-#
-## calculate reconstruction of momentum and the uncertainty
-#p_T_reco_vec, unc_vec = magnet_10_0_5.reconstruct_momentum(q, s_reco_before, s_reco_after)
-#
-## calculate differences between reco and true
-#p_T_diff = p_T_reco_vec - p_T_true
-#
-## calculate histogram, mean, std
-#hist, bins = np.histogram(p_T_diff, bins=50)
-#mean = np.mean(p_T_diff)
-#std = np.std(p_T_diff)
-#
-## plot histogram
-#ax[0].hist(p_T_diff, bins=50, kde=True, color='skyblue', edgecolor='black')
-#
-### calculate histogram  of pulls
-## prepare plots
-#fig, ax = plt.subplots(2, 8)
-#ax = ax.flatten()
-#
-## calculate pull
-#p_T_pulls = pull(p_T_reco_vec, p_T_true, unc_vec)
-#
-## calculate histogram, mean, std
-#hist, bins = np.histogram(p_T_pulls, bins=50)
-#mean = np.mean(p_T_pulls)
-#std = np.std(p_T_pulls)
-#
-## plot histogram
-#ax[0].hist(p_T_pulls, bins=50, kde=True, color='skyblue', edgecolor='black')
-#
-#
-#
-#
+
+
+##### 4 Momentum Resolution #####
+
+# pull function
+def pull(x_reco, x_gen, unc_x_reco):
+    return (x_reco - x_gen)/unc_x_reco
+
+# function to run Part 4 Momentum Resolution
+def Momentum_Resolution():
+    # Detector setup
+    z_detectors = np.array([i * dZ for i in range(0, n_before+1)] + [dZ*n_before+L + i * dZ for i in range(0, n_after+1)])
+    z_0 = 0
+    zbegin_index = n_before
+    z_end = z_detectors[-1]
+
+    print(z_detectors)
+
+
+    ### Warm-up Exercise
+    p_T_true = 0.3
+    magnet_10_0_5 = Magnet(L, B, n_before*zbegin_index)
+
+    # a) Waiting for Code of Part 3 (WORK IN PROGRESS)
+    particle_warmup = particle(p_T_true)
+    magnet_10_0_5.change(particle_warmup) # calculate change because of magnet
+
+
+    # extrapolate trajectory 
+    cellsHit(particle_warmup, z_detectors[:zbegin_index]) # calculate hits before magnets
+    cellsHit(particle_warmup, z_detectors[zbegin_index+1:], zMagnet=z_detectors[zbegin_index+1]) # calculate hits after magnet
+    print(particle_warmup.xactual)
+
+    curve_interpolation_warmup = magnet_10_0_5.change_interpolation(particle_warmup.xactual[zbegin_index], particle_warmup.s0, particle_warmup.xMagnet, particle_warmup.sMagnet, particle_warmup.p_T, particle_warmup.q)
+
+
+    # b) Waiting for code of Part 3 but code for reconstruction done (WORK IN PROGRESS)
+    s_reco_before = 0
+    s_reco_after = 0
+    q = 0
+
+    p_T_reco = magnet_10_0_5.reconstruct_momentum(q, s_reco_before, s_reco_after)
+
+
+    ### Estimate momentum resolution (vectorized with numpy)
+    ## calculate histograms of differences
+    # prepare plots
+    fig, ax = plt.subplots(2, 8)
+    ax = ax.flatten()
+
+    # particle informations
+    s_reco_before_vec = 0
+    s_reco_after_vec = 0
+    q_vec = 0
+
+    # calculate reconstruction of momentum and the uncertainty
+    p_T_reco_vec, unc_vec = magnet_10_0_5.reconstruct_momentum(q, s_reco_before, s_reco_after)
+
+    # calculate differences between reco and true
+    p_T_diff = p_T_reco_vec - p_T_true
+
+    # calculate histogram, mean, std
+    hist, bins = np.histogram(p_T_diff, bins=50)
+    mean = np.mean(p_T_diff)
+    std = np.std(p_T_diff)
+
+    # plot histogram
+    ax[0].hist(p_T_diff, bins=50, kde=True, color='skyblue', edgecolor='black')
+
+    ## calculate histogram  of pulls
+    # prepare plots
+    fig, ax = plt.subplots(2, 8)
+    ax = ax.flatten()
+
+    # calculate pull
+    p_T_pulls = pull(p_T_reco_vec, p_T_true, unc_vec)
+
+    # calculate histogram, mean, std
+    hist, bins = np.histogram(p_T_pulls, bins=50)
+    mean = np.mean(p_T_pulls)
+    std = np.std(p_T_pulls)
+
+    # plot histogram
+    ax[0].hist(p_T_pulls, bins=50, kde=True, color='skyblue', edgecolor='black')
+
+# run Part 4 Momentum Resolution
+Momentum_Resolution()
