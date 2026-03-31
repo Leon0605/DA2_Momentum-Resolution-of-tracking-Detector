@@ -1,6 +1,5 @@
 import numpy as np
 import matplotlib as plt
-import math
 from sklearn.linear_model import LinearRegression
 
 
@@ -8,7 +7,7 @@ from sklearn.linear_model import LinearRegression
 n_before = 5        # number of detection planes before magnet
 n_after = 3         # number of detection planes after magnet
 delta_z = 20        # distance detector planes
-cellWidth = 0.5    # width of detection plane cells in 100 mikrometers (1mm is 1 then, 1cm is 10)
+cellWidth = 0.5     # width of detection plane cells in 100 mikrometers (1mm is 1 then, 1cm is 10)
 L = 100             # Magnet Lenght
 B = 0.5             # strength of magnetic field in T
 
@@ -20,7 +19,7 @@ class particle:
         self.x0 = np.random.normal(0,1,None)
         # x position after the magnet
         self.xMagnet = self.x0
-        self.s0 = np.random.normal(0,0.1,None)
+        self.s0 = np.tan(np.random.normal(0,0.1,None))
         # slope after the magnet
         self.sMagnet = self.s0
         self.t0 = 0
@@ -37,9 +36,8 @@ def cellsHit(p, z, zMagnet=None):
         x = p.x0 + p.s0 * (z) #calculate x position
     else:
         x = p.xMagnet + p.sMagnet * ((z - zMagnet)) #calculate x position after magnet
-    p.xactual.append(x) 
-    p.layers.append(np.floor(x/cellWidth)+1) #calculate and store cell index
-
+    p.xactual.extend(x.tolist())
+    p.layers += list(np.floor(x/cellWidth)+1)
 
 def generatePoints(p, n):
     genX = []
@@ -68,7 +66,7 @@ class Magnet:
 
         # xMagnet
         dz        = self.L - M_z
-        x_straight = p.x0 + p.s0 * self.L             # Geradenverlängerung
+        x_straight = p.x0 + p.s0 * self.L          
         sqrt_disc  = np.sqrt(rho**2 - dz**2)
         x_cand     = [M_x + sqrt_disc, M_x - sqrt_disc]
         x_changed  = min(x_cand, key=lambda xc: abs(xc - x_straight))
@@ -103,7 +101,7 @@ class Magnet:
     
     # reconstruct p_T (WORK IN PROGRESS)
     def reconstruct_momentum(self, q, s_entry, s_output):
-        theta = np.abs(s_entry - s_output)  # calculated as approximation because small angle tan(x) = x
+        theta = np.abs(np.arctan(s_entry) - np.arctan(s_output))  # calculated as approximation because small angle tan(x) = x
         p_T_reconstructed = (self.L * self.B *q) / theta * 1e-4
 
         unc_p_T_reco = 0    # --> uncertainty von reco noch coden
@@ -121,6 +119,8 @@ z_0 = 0
 zbegin_index = n_before
 z_end = z_detectors[-1]
 
+print(z_detectors)
+
 
 ### Warm-up Exercise
 p_T_true = 0.3
@@ -132,61 +132,62 @@ magnet_10_0_5.change(particle_warmup) # calculate change because of magnet
 
 
 # extrapolate trajectory 
-cellsHit(particle_warmup, z_detectors[zbegin_index]) # calculate hits before magnets
+cellsHit(particle_warmup, z_detectors[:zbegin_index]) # calculate hits before magnets
 cellsHit(particle_warmup, z_detectors[zbegin_index+1:], zMagnet=z_detectors[zbegin_index+1]) # calculate hits after magnet
+print(particle_warmup.xactual)
+
 curve_interpolation_warmup = magnet_10_0_5.change_interpolation(particle_warmup.xactual[zbegin_index], particle_warmup.s0, particle_warmup.xMagnet, particle_warmup.sMagnet, particle_warmup.p_T, particle_warmup.q)
 
 
 
-## b) Waiting for code of Part 3 but code for reconstruction done (WORK IN PROGRESS)
-#s_reco_before = 0
-#s_reco_after = 0
-#q = 0
-#
-#p_T_reco = magnet_10_0_5.reconstruct_momentum(q, s_reco_before, s_reco_after)
-#
-#
-#### Estimate momentum resolution (vectorized with numpy)
-### calculate histograms of differences
-## prepare plots
-#fig, ax = plt.subplots(2, 8)
-#ax = ax.flatten()
-#
-## particle informations
-#s_reco_before_vec = 0
-#s_reco_after_vec = 0
-#q_vec = 0
-#
-## calculate reconstruction of momentum and the uncertainty
-#p_T_reco_vec, unc_vec = magnet_10_0_5.reconstruct_momentum(q, s_reco_before, s_reco_after)
-#
-## calculate differences between reco and true
-#p_T_diff = p_T_reco_vec - p_T_true
-#
-## calculate histogram, mean, std
-#hist, bins = np.histogram(p_T_diff, bins=50)
-#mean = np.mean(p_T_diff)
-#std = np.std(p_T_diff)
-#
-## plot histogram
-#ax[0].hist(p_T_diff, bins=50, kde=True, color='skyblue', edgecolor='black')
-#
-### calculate histogram  of pulls
-## prepare plots
-#fig, ax = plt.subplots(2, 8)
-#ax = ax.flatten()
-#
-## calculate pull
-#p_T_pulls = pull(p_T_reco_vec, p_T_true, unc_vec)
-#
-## calculate histogram, mean, std
-#hist, bins = np.histogram(p_T_pulls, bins=50)
-#mean = np.mean(p_T_pulls)
-#std = np.std(p_T_pulls)
-#
-## plot histogram
-#ax[0].hist(p_T_pulls, bins=50, kde=True, color='skyblue', edgecolor='black')
-#
-#
-#
-#
+
+
+
+# b) Waiting for code of Part 3 but code for reconstruction done (WORK IN PROGRESS)
+s_reco_before = 0
+s_reco_after = 0
+q = 0
+
+p_T_reco = magnet_10_0_5.reconstruct_momentum(q, s_reco_before, s_reco_after)
+
+
+### Estimate momentum resolution (vectorized with numpy)
+## calculate histograms of differences
+# prepare plots
+fig, ax = plt.subplots(2, 8)
+ax = ax.flatten()
+
+# particle informations
+s_reco_before_vec = 0
+s_reco_after_vec = 0
+q_vec = 0
+
+# calculate reconstruction of momentum and the uncertainty
+p_T_reco_vec, unc_vec = magnet_10_0_5.reconstruct_momentum(q, s_reco_before, s_reco_after)
+
+# calculate differences between reco and true
+p_T_diff = p_T_reco_vec - p_T_true
+
+# calculate histogram, mean, std
+hist, bins = np.histogram(p_T_diff, bins=50)
+mean = np.mean(p_T_diff)
+std = np.std(p_T_diff)
+
+# plot histogram
+ax[0].hist(p_T_diff, bins=50, kde=True, color='skyblue', edgecolor='black')
+
+## calculate histogram  of pulls
+# prepare plots
+fig, ax = plt.subplots(2, 8)
+ax = ax.flatten()
+
+# calculate pull
+p_T_pulls = pull(p_T_reco_vec, p_T_true, unc_vec)
+
+# calculate histogram, mean, std
+hist, bins = np.histogram(p_T_pulls, bins=50)
+mean = np.mean(p_T_pulls)
+std = np.std(p_T_pulls)
+
+# plot histogram
+ax[0].hist(p_T_pulls, bins=50, kde=True, color='skyblue', edgecolor='black')
