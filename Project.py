@@ -48,37 +48,53 @@ class Magnet:
 
     # generate change of true trajectory
     def change(self, p):
-        # delta x
-        rho = (p.p_T / p.q * self.B) / 1e-4
-        arct_0 = np.arcta(p.s0)
-        x_delta = np.sqrt(rho**2 - (self.L-np.cos(arct_0)*rho)**2) - np.sin(arct_0)*rho
+        # p_T in GeV, B in T → rho in m, *1000 für mm
+        # sign of rho defines curvature (q > 0 → rho > 0)
+        rho = p.p_T / (0.3 * p.q * self.B) * 1000   # signed, in mm
 
-        # x output
-        p.xMagnet = p.x0 + x_delta
+        # entry at beginning of magnet
+        x_entry = p.x0 + p.s0 * self.z_beginn
+        z_entry = self.z_beginn
+        alpha0  = np.arctan(p.s0)
 
-        # s output (WORK IN PROGRESS)
+        # calculate center
+        # orthogonal-left towards momentumvector (sin α₀, cos α₀) is (-cos α₀, sin α₀)
+        # M lays in that direction in distance rho:
+        #   q > 0 → rho > 0 → centre left  → CCW-bahn (-x)
+        #   q < 0 → rho < 0 → centre rechts → CW-bahn  (+x)
+        M_x = x_entry + rho * (-np.cos(alpha0)) 
+        M_z = z_entry + rho *   np.sin(alpha0)
+
+        # calculate output x
+        z_exit = self.z_end
+        discriminant = rho**2 - (z_exit - M_z)**2
+        p.xMagnet = M_x + np.sign(rho) * np.sqrt(max(discriminant, 0.0))
+
+        # -calculate output s
+        # Tangente of circle at output: slope = -(z_exit - M_z) / (x_exit - M_x)
+        p.sMagnet = -(z_exit - M_z) / (p.xMagnet - M_x)
 
     # interpolate change trajectory
     def change_interpolation(self, x_entry, s_entry, p_T, q, resolution=100):
-        z_mag_entry = n_before * dZ
-        z_i = np.linspace(z_mag_entry, z_mag_entry + self.L, resolution)
+        z_i = np.linspace(self.z_beginn, self.z_beginn + self.L, resolution)
 
-        rho = (p_T / q * self.B) / 1e-4
+        rho = p_T / (0.3 * q * self.B) * 1000
+
         norm = np.sqrt(1.0 + s_entry**2)
-        M_x  = x_entry     + rho * (-(1.0 / norm) * q)
-        M_z  = z_mag_entry + rho * ((s_entry / norm) * q)
+        M_x  = x_entry     + rho * (-1.0 / norm)
+        M_z  = self.z_beginn + rho * (s_entry / norm)
 
-        sign          = np.sign(x_entry - M_x)
-        interpolated  = M_x + sign * np.sqrt(np.maximum(rho**2 - (z_i - M_z)**2, 0))
+        interpolated = M_x + np.sign(rho) * np.sqrt(np.maximum(rho**2 - (z_i - M_z)**2, 0))
         return z_i, interpolated
-    
+
     # reconstruct p_T
-    def reconstruct_momentum(self, q, s_entry, s_output, unc_s_entry, unc_s_output, covariance_s_in_out):
-        theta = np.abs(np.arctan(s_entry) - np.arctan(s_output))  # calculated as approximation because small angle tan(x) = x
-        p_T_reconstructed = (self.L * self.B *q) / theta * 1e-4
+    def reconstruct_momentum(self, q, s_entry, s_output, unc_s_entry, unc_s_output, covariance_s_in_out=0):
+        theta = np.abs(np.arctan(s_entry) - np.arctan(s_output))
+        p_T_reconstructed = (self.L * self.B * np.abs(q)) / theta * 3e-4
+
         # calculate error propagation
         delta_angle = np.arctan(s_entry) - np.arctan(s_output)
-        unc_p_T_reco = (self.L * q * self.B)**2 * (unc_s_entry**2 / ((1+s_entry**2)**2 * delta_angle**4) + unc_s_output**2 / ((1+s_output**2)**2 * delta_angle**4) - 2 * covariance_s_in_out / ((1+s_entry**2) * (1+s_output**2) * delta_angle**4))
+        unc_p_T_reco = np.sqrt((self.L * q * self.B * 3e-4)**2 * (unc_s_entry**2 / ((1+s_entry**2)**2 * delta_angle**4) + unc_s_output**2 / ((1+s_output**2)**2 * delta_angle**4) - 2 * covariance_s_in_out / ((1+s_entry**2) * (1+s_output**2) * delta_angle**4)))
         return (p_T_reconstructed, unc_p_T_reco)
 
 
@@ -87,7 +103,6 @@ def cellsHit(p, z, zMagnet=None):
     if zMagnet is None:
         x = p.x0 + p.s0 * (z) #calculate x position
         print(f"hit: {x}")
-
     else:
         x = p.xMagnet + p.sMagnet * ((z - zMagnet)) #calculate x position after magnet
         print(f"hit: {x}")
@@ -214,9 +229,9 @@ def Momentum_Resolution():
 
     ### Warm-up Exercise
     p_T_true = 0.3
-    magnet_10_0_5 = Magnet(L, B, n_before*zbegin_index)
+    magnet_10_0_5 = Magnet(L, B, n_before*dZ)
 
-    # a) Waiting for Code of Part 3 (WORK IN PROGRESS)
+    # a) Waiting for Code of Part 3 (Work in PROGRESS)
     particle_warmup = particle(p_T_true)
     magnet_10_0_5.change(particle_warmup) # calculate change because of magnet
 
@@ -225,15 +240,17 @@ def Momentum_Resolution():
     for z in z_detectors[:zbegin_index+1]:    # before magnet
         cellsHit(particle_warmup, z) # calculate hits before magnets
 
-    for z in z_detectors[zbegin_index+1:]:  # before magnet
-        cellsHit(particle_warmup, z, zMagnet=z_detectors[zbegin_index+1]) # calculate hits after magnet
-    
+    for z in z_detectors[zbegin_index+1:]:
+        cellsHit(particle_warmup, z, zMagnet=magnet_10_0_5.z_end) # calculate hits after magnet
+
     print(f"slope before magnet: {particle_warmup.s0}")
     print(f"slope after magnet: {particle_warmup.sMagnet}")
     print(f"x-coord beginning: {particle_warmup.x0}")
     print(f"x-coord before magnet: {particle_warmup.xactual[zbegin_index]}")
     print(f"x-coord after magnet: {particle_warmup.xMagnet}")
     print()
+
+    print(particle_warmup.q)
 
     print(f"hitpoints before magnet: {particle_warmup.xactual[:zbegin_index]}")
     print(f"hitpoints after magnet: {particle_warmup.xactual[zbegin_index+1:]}")
@@ -242,15 +259,19 @@ def Momentum_Resolution():
     print(f"cell index: {particle_warmup.xactual}")
     print()
 
-    #curve_interpolation_warmup = magnet_10_0_5.change_interpolation(particle_warmup.xactual[zbegin_index], particle_warmup.s0, particle_warmup.xMagnet, particle_warmup.sMagnet, particle_warmup.p_T, particle_warmup.q)
-
+    curve_z_i, curve_interpolation_warmup = magnet_10_0_5.change_interpolation(particle_warmup.xactual[zbegin_index], particle_warmup.s0, p_T_true, particle_warmup.q)
+    
     # plot of simulation of part 4a
     plt.figure()
 
     for z in z_detectors:
-        plt.plot([z, z + 10.0**(-6)], [-30, 30], color="lightblue")
+        plt.plot([z, z + 10.0**(-6)], [min(particle_warmup.xactual)-10, max(particle_warmup.xactual)+10], color="lightblue")
     plt.plot(z_detectors[:zbegin_index+1], particle_warmup.xactual[:zbegin_index+1], label="True Trajectory before Magnet")
-    plt.plot(z_detectors[zbegin_index+1:], particle_warmup.xactual[zbegin_index+1:], label="True Trajectory befoafter Magnet")
+    plt.plot(z_detectors[zbegin_index+1:], particle_warmup.xactual[zbegin_index+1:], label="True Trajectory after Magnet")
+    plt.plot(curve_z_i, curve_interpolation_warmup, label="Interpolated trajectory curvature")
+    plt.xlabel("z")
+    plt.ylabel("x")
+    plt.legend()
     plt.show()
 
 
