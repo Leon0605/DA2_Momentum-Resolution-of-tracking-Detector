@@ -102,10 +102,8 @@ class Magnet:
 def cellsHit(p, z, zMagnet=None):
     if zMagnet is None:
         x = p.x0 + p.s0 * (z) #calculate x position
-        print(f"hit: {x}")
     else:
         x = p.xMagnet + p.sMagnet * ((z - zMagnet)) #calculate x position after magnet
-        print(f"hit: {x}")
     p.xactual.append(x)
     if(x >= 0):
         p.layers.append(np.floor(x/cellWidth)+1)
@@ -259,6 +257,7 @@ def Momentum_Resolution():
     print(f"cell index: {particle_warmup.xactual}")
     print()
 
+    # calculat trejectory through magnet
     curve_z_i, curve_interpolation_warmup = magnet_10_0_5.change_interpolation(particle_warmup.xactual[zbegin_index], particle_warmup.s0, p_T_true, particle_warmup.q)
     
     # plot of simulation of part 4a
@@ -268,7 +267,7 @@ def Momentum_Resolution():
         plt.plot([z, z + 10.0**(-6)], [min(particle_warmup.xactual)-10, max(particle_warmup.xactual)+10], color="lightblue")
     plt.plot(z_detectors[:zbegin_index+1], particle_warmup.xactual[:zbegin_index+1], label="True Trajectory before Magnet")
     plt.plot(z_detectors[zbegin_index+1:], particle_warmup.xactual[zbegin_index+1:], label="True Trajectory after Magnet")
-    plt.plot(curve_z_i, curve_interpolation_warmup, label="Interpolated trajectory curvature")
+    plt.plot(curve_z_i, curve_interpolation_warmup, label="INterpolated Trajectory through Magnet")
     plt.xlabel("z")
     plt.ylabel("x")
     plt.legend()
