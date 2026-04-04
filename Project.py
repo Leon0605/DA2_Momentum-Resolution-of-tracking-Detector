@@ -18,17 +18,23 @@ B = 0.5             # strength of magnetic field in T
 class particle:
 
     def __init__(self, p_T):
+        # x position at beginning of detector
         self.z0 = 0
         self.x0 = np.random.normal(0,1,None)
         self.x0reco = 0
         self.x0recoUncert = 0
         # x position after the magnet
         self.xMagnet = self.x0
+        self.xMagnetreco = 0
+        self.xMagnetrecoUncert = 0
+        # slope before magnet
         self.s0 = np.tan(np.random.normal(0,0.1,None))
         self.s0reco = 0
         self.s0recoUncert = 0
         # slope after the magnet
         self.sMagnet = self.s0
+        self.sMagnetreco = 0
+        self.sMagnetrecoUncert = 0
         self.t0 = 0
         self.xactual = []
         self.layers = []
@@ -73,9 +79,10 @@ class Magnet:
         # -calculate output s
         # Tangente of circle at output: slope = -(z_exit - M_z) / (x_exit - M_x)
         p.sMagnet = -(z_exit - M_z) / (p.xMagnet - M_x)
+        return M_z, M_x
 
     # interpolate change trajectory
-    def change_interpolation(self, x_entry, s_entry, p_T, q, resolution=100):
+    def change_interpolation_1(self, x_entry, s_entry, p_T, q, resolution=100):
         z_i = np.linspace(self.z_beginn, self.z_beginn + self.L, resolution)
 
         rho = p_T / (0.3 * q * self.B) * 1000
@@ -86,6 +93,32 @@ class Magnet:
 
         interpolated = M_x + np.sign(rho) * np.sqrt(np.maximum(rho**2 - (z_i - M_z)**2, 0))
         return z_i, interpolated
+    
+    # interpolate change trajectory
+    def change_interpolation_2(self, x_entry, s_entry, x_exit, s_exit, resolution=100):
+        z_i   = np.linspace(self.z_beginn, self.z_beginn + self.L, resolution)
+        z_end = self.z_beginn + self.L
+
+        norm1 = np.sqrt(1.0 + s_entry**2)
+        norm2 = np.sqrt(1.0 + s_exit**2)
+
+        A = np.array([
+            [ s_entry / norm1,  -s_exit / norm2],
+            [-1.0     / norm1,   1.0    / norm2]
+        ])
+        b = np.array([z_end - self.z_beginn, x_exit - x_entry])
+
+        t, _ = np.linalg.solve(A, b)   # t = rho (vorzeichenbehaftet)
+
+        rho = t
+        M_z = self.z_beginn + rho * ( s_entry / norm1)
+        M_x = x_entry       + rho * (-1.0     / norm1)
+
+        interpolated = M_x + np.sign(rho) * np.sqrt(
+            np.maximum(rho**2 - (z_i - M_z)**2, 0)
+        )
+        return z_i, interpolated
+
 
     # reconstruct p_T
     def reconstruct_momentum(self, q, s_entry, s_output, unc_s_entry, unc_s_output, covariance_s_in_out=0):
@@ -231,8 +264,7 @@ def Momentum_Resolution():
 
     # a) Waiting for Code of Part 3 (Work in PROGRESS)
     particle_warmup = particle(p_T_true)
-    magnet_10_0_5.change(particle_warmup) # calculate change because of magnet
-
+    M_z, M_x = magnet_10_0_5.change(particle_warmup) # calculate change because of magnet
 
     # extrapolate trajectory 
     for z in z_detectors[:zbegin_index+1]:    # before magnet
@@ -257,17 +289,52 @@ def Momentum_Resolution():
     print(f"cell index: {particle_warmup.xactual}")
     print()
 
-    # calculat trejectory through magnet
-    curve_z_i, curve_interpolation_warmup = magnet_10_0_5.change_interpolation(particle_warmup.xactual[zbegin_index], particle_warmup.s0, p_T_true, particle_warmup.q)
+    # calculate trajectory through magnet
+    curve_z_i, curve_interpolation_warmup = magnet_10_0_5.change_interpolation_1(particle_warmup.xactual[zbegin_index], particle_warmup.s0, p_T_true, particle_warmup.q)
     
+    # calculate hitposition and uncertainty
+    hits_warmup, unc_warmup = generatePoints(particle_warmup)
+
+    # calculate linear regression before magnet
+    coeffs_before, cov_before = optimize.curve_fit(line, z_detectors[:zbegin_index+1], hits_warmup[:zbegin_index+1], sigma=unc_warmup[:zbegin_index+1], absolute_sigma=True)
+    particle_warmup.s0reco, particle_warmup.x0reco = coeffs_before
+    particle_warmup.s0recoUncert, particle_warmup.x0recoUncert = np.sqrt(np.diag(cov_before))
+
+    # calculate linear regression after magnet
+    coeffs_after, cov_after = optimize.curve_fit(line, z_detectors[zbegin_index+1:], hits_warmup[zbegin_index+1:], sigma=unc_warmup[zbegin_index+1:], absolute_sigma=True)
+    particle_warmup.sMagnetreco, particle_warmup.xMagnetreco = coeffs_after
+    particle_warmup.sMagnetrecoUncert, particle_warmup.xMagnetrecoUncert = np.sqrt(np.diag(cov_after))
+
+    # calculate line before magnet
+    x_line_reco_before_warmup = line(z_detectors[:zbegin_index+1], particle_warmup.s0reco, particle_warmup.x0reco)
+
+    # calculate line after magnet
+    x_line_reco_after_warmup = line(z_detectors[zbegin_index+1:], particle_warmup.sMagnetreco, particle_warmup.xMagnetreco)
+    
+    # calculate reconstructed trajectory through magnet
+    curve_z_i, curve_interpolation_reco_warmup = magnet_10_0_5.change_interpolation_2(x_line_reco_before_warmup[zbegin_index], particle_warmup.s0reco, particle_warmup.xMagnetreco, particle_warmup.sMagnetreco)
+    
+
     # plot of simulation of part 4a
     plt.figure()
 
+    # plot detector layers
     for z in z_detectors:
-        plt.plot([z, z + 10.0**(-6)], [min(particle_warmup.xactual)-10, max(particle_warmup.xactual)+10], color="lightblue")
-    plt.plot(z_detectors[:zbegin_index+1], particle_warmup.xactual[:zbegin_index+1], label="True Trajectory before Magnet")
-    plt.plot(z_detectors[zbegin_index+1:], particle_warmup.xactual[zbegin_index+1:], label="True Trajectory after Magnet")
-    plt.plot(curve_z_i, curve_interpolation_warmup, label="INterpolated Trajectory through Magnet")
+        plt.plot([z, z + 10.0**(-6)], [min(particle_warmup.xactual)-2, max(particle_warmup.xactual)+2], color="lightgrey")
+
+    
+    # plot reconstructed trajectory
+    #plt.scatter(z_detectors, hits_warmup, marker="x", color="black", s=0.5, label='Uncertainties Hit positions')
+    plt.plot(z_detectors[:zbegin_index+1], x_line_reco_before_warmup, color="lightblue", label='Reconstructed Trajectory')
+    plt.plot(z_detectors[zbegin_index+1:], x_line_reco_after_warmup, color="lightblue")
+    plt.plot(curve_z_i, curve_interpolation_reco_warmup, color="lightblue")
+    # plot true trajectory
+    plt.plot(z_detectors[:zbegin_index+1], particle_warmup.xactual[:zbegin_index+1],linestyle="dashed", color="orange", label="True Trajectory")
+    plt.plot(z_detectors[zbegin_index+1:], particle_warmup.xactual[zbegin_index+1:],linestyle="dashed", color="orange")
+    plt.plot(curve_z_i, curve_interpolation_warmup, linestyle="dashed", color="orange")
+    # plot uncertainty
+    plt.errorbar(z_detectors, hits_warmup, yerr=unc_warmup, fmt='.', color="red", label='Uncertainties Hit positions')
+    # plot infos
     plt.xlabel("z")
     plt.ylabel("x")
     plt.legend()
