@@ -1,7 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import math
+import seaborn as sns
 from scipy import optimize
+from scipy.interpolate import CubicHermiteSpline
 from sklearn.linear_model import LinearRegression
 
 
@@ -96,29 +97,14 @@ class Magnet:
     
     # interpolate change trajectory
     def change_interpolation_2(self, x_entry, s_entry, x_exit, s_exit, resolution=100):
-        z_i   = np.linspace(self.z_beginn, self.z_beginn + self.L, resolution)
-        z_end = self.z_beginn + self.L
+        z_i = np.linspace(self.z_beginn, self.z_beginn + self.L, resolution)
 
-        norm1 = np.sqrt(1.0 + s_entry**2)
-        norm2 = np.sqrt(1.0 + s_exit**2)
+        z_endpoints = np.array([self.z_beginn, self.z_beginn + self.L])
+        x_endpoints = np.array([x_entry, x_exit])
+        slopes      = np.array([s_entry, s_exit])
 
-        A = np.array([
-            [ s_entry / norm1,  -s_exit / norm2],
-            [-1.0     / norm1,   1.0    / norm2]
-        ])
-        b = np.array([z_end - self.z_beginn, x_exit - x_entry])
-
-        t, _ = np.linalg.solve(A, b)   # t = rho (vorzeichenbehaftet)
-
-        rho = t
-        M_z = self.z_beginn + rho * ( s_entry / norm1)
-        M_x = x_entry       + rho * (-1.0     / norm1)
-
-        interpolated = M_x + np.sign(rho) * np.sqrt(
-            np.maximum(rho**2 - (z_i - M_z)**2, 0)
-        )
-        return z_i, interpolated
-
+        spline = CubicHermiteSpline(z_endpoints, x_endpoints, slopes)
+        return z_i, spline(z_i)
 
     # reconstruct p_T
     def reconstruct_momentum(self, q, s_entry, s_output, unc_s_entry, unc_s_output, covariance_s_in_out=0):
@@ -271,23 +257,6 @@ def Momentum_Resolution():
     for z in z_detectors[zbegin_index+1:]:
         cellsHit(particle_warmup, z, zMagnet=magnet_10_0_5.z_end) # calculate hits after magnet
 
-    #print(f"detector setup (z-coord): {z_detectors}")
-    #print()
-    #print(f"slope before magnet: {particle_warmup.s0}")
-    #print(f"slope after magnet: {particle_warmup.sMagnet}")
-    #print(f"x-coord beginning: {particle_warmup.x0}")
-    #print(f"x-coord before magnet: {particle_warmup.xactual[zbegin_index]}")
-    #print(f"x-coord after magnet: {particle_warmup.xMagnet}")
-    #print()
-    #print(particle_warmup.q)
-    #print()
-    #print(f"hitpoints before magnet: {particle_warmup.xactual[:zbegin_index]}")
-    #print(f"hitpoints after magnet: {particle_warmup.xactual[zbegin_index+1:]}")
-    #print()
-    #print(f"hitpoints: {particle_warmup.xactual}")
-    #print(f"cell index: {particle_warmup.xactual}")
-    #print()
-
     # calculate trajectory through magnet
     curve_z_i, curve_interpolation_warmup = magnet_10_0_5.change_interpolation_1(particle_warmup.xactual[zbegin_index], particle_warmup.s0, p_T_true, particle_warmup.q)
     
@@ -303,20 +272,38 @@ def Momentum_Resolution():
 
     # calculate linear regression after magnet
     coeffs_after, cov_after = optimize.curve_fit(line, z_detectors[zbegin_index+1:], hits_warmup[zbegin_index+1:], sigma=unc_warmup[zbegin_index+1:], absolute_sigma=True)
-    particle_warmup.sMagnetreco, particle_warmup.xMagnetreco = coeffs_after
-    particle_warmup.sMagnetrecoUncert, particle_warmup.xMagnetrecoUncert = np.sqrt(np.diag(cov_after))
+    particle_warmup.sMagnetreco, intercept_after_reco = coeffs_after
+    particle_warmup.xMagnetreco = line(magnet_10_0_5.z_end, particle_warmup.sMagnetreco, intercept_after_reco)
+    unc_slope, unc_intercept = np.sqrt(np.diag(cov_after))
+    particle_warmup.sMagnetrecoUncert = unc_slope
+    particle_warmup.xMagnetrecoUncert = np.sqrt((magnet_10_0_5.z_end * unc_slope)**2 + unc_intercept**2)
 
     # calculate line before magnet
     x_line_reco_before_warmup = line(z_detectors[:zbegin_index+1], particle_warmup.s0reco, particle_warmup.x0reco)
 
     # calculate line after magnet
-    x_line_reco_after_warmup = line(z_detectors[zbegin_index+1:], particle_warmup.sMagnetreco, particle_warmup.xMagnetreco)
+    x_line_reco_after_warmup = line(z_detectors[zbegin_index+1:], particle_warmup.sMagnetreco, particle_warmup.xMagnetreco - particle_warmup.sMagnetreco * magnet_10_0_5.z_end)
     
     # calculate reconstructed trajectory through magnet
     curve_z_i, curve_interpolation_reco_warmup = magnet_10_0_5.change_interpolation_2(x_line_reco_before_warmup[zbegin_index], particle_warmup.s0reco, particle_warmup.xMagnetreco, particle_warmup.sMagnetreco)
+
+    # calculate reconstruction of p_T
+    p_T_reco_warmup, p_T_reco_unc_warmup = magnet_10_0_5.reconstruct_momentum(particle_warmup.q, particle_warmup.s0reco, particle_warmup.sMagnetreco, particle_warmup.s0recoUncert, particle_warmup.sMagnetrecoUncert)
     
+    print(f"--- Warmup: Reconstruction of p_T ---")
+    print(f"p_T true: {p_T_true} GeV")
+    print(f"p_T reconstructed: {p_T_reco_warmup:.5f} GeV")
+    print(f"diff p_T true and reco: {np.abs(p_T_true - p_T_reco_warmup):.5f} GeV")
+    print(f"uncertainty of reconstruction: {p_T_reco_unc_warmup:.5f} GeV")
+    print()
+
+    print("Interpolation Endpunkt:      ", curve_interpolation_reco_warmup[-1])
+    print("xMagnetreco:                 ", particle_warmup.xMagnetreco)
+    print("Line erster Punkt bei z=200: ", x_line_reco_after_warmup[0])
+    print()
+
     # plot of simulation
-    plt.figure()
+    plt.figure(figsize=(20,12))
 
     # plot detector layers
     for z in z_detectors:
@@ -338,14 +325,6 @@ def Momentum_Resolution():
     plt.ylabel("x [mm]")
     plt.legend()
     plt.show()
-
-    # calculate reconstruction of p_T
-    p_T_reco_warmup, p_T_reco_unc_warmup = magnet_10_0_5.reconstruct_momentum(particle_warmup.q, particle_warmup.s0reco, particle_warmup.sMagnetreco, particle_warmup.s0recoUncert, particle_warmup.sMagnetrecoUncert)
-    print(f"p_T true: {p_T_true} GeV")
-    print(f"p_T reconstructed: {p_T_reco_warmup:.5f} GeV")
-    print(f"diff p_T true and reco: {np.abs(p_T_true - p_T_reco_warmup):.5f} GeV")
-    print(f"uncertainty of reconstruction: {p_T_reco_unc_warmup:.5f} GeV")
-    print()
 
 
     ### Estimate momentum resolution ###
@@ -377,34 +356,46 @@ def Momentum_Resolution():
     p_Ts_unc = []
     x_line_reco_before_magnet = []
     x_line_reco_after_magnet = []
+    true_false= []
     for i, p in enumerate(particles):
         # calculate linear regression before magnet
-        coeffs_before, cov_before = optimize.curve_fit(line, z_detectors[:zbegin_index+1], hitpoints[i][:zbegin_index+1], sigma=hitpoints_unc[0][:zbegin_index+1], absolute_sigma=True)
+        coeffs_before, cov_before = optimize.curve_fit(line, z_detectors[:zbegin_index+1], hitpoints[i][:zbegin_index+1], sigma=hitpoints_unc[i][:zbegin_index+1], absolute_sigma=True)
         p.s0reco, p.x0reco = coeffs_before
         p.s0recoUncert, p.x0recoUncert = np.sqrt(np.diag(cov_before))
 
         # calculate linear regression after magnet
-        coeffs_after, cov_after = optimize.curve_fit(line, z_detectors[zbegin_index+1:], hitpoints[i][zbegin_index+1:], sigma=hitpoints_unc[0][zbegin_index+1:], absolute_sigma=True)
-        p.sMagnetreco, p.xMagnetreco = coeffs_after
-        p.sMagnetrecoUncert, p.xMagnetrecoUncert = np.sqrt(np.diag(cov_after))
+        coeffs_after, cov_after = optimize.curve_fit(line, z_detectors[zbegin_index+1:], hitpoints[i][zbegin_index+1:], sigma=hitpoints_unc[i][zbegin_index+1:], absolute_sigma=True)
+        p.sMagnetreco, intercept_after_reco = coeffs_after
+        p.xMagnetreco = line(magnet_10_0_5.z_end, p.sMagnetreco, intercept_after_reco)
+        unc_slope, unc_intercept = np.sqrt(np.diag(cov_after))
+        p.sMagnetrecoUncert = unc_slope
+        p.xMagnetrecoUncert = np.sqrt((magnet_10_0_5.z_end * unc_slope)**2 + unc_intercept**2)
 
         # calculate line before magnet
         x_line_reco_before = line(z_detectors[:zbegin_index+1], p.s0reco, p.x0reco)
         x_line_reco_before_magnet.append(x_line_reco_before)
 
         # calculate line after magnet
-        x_line_reco_after = line(z_detectors[zbegin_index+1:], p.sMagnetreco, p.xMagnetreco)
+        x_line_reco_after = line(z_detectors[zbegin_index+1:], p.sMagnetreco, p.xMagnetreco - p.sMagnetreco * magnet_10_0_5.z_end)
         x_line_reco_after_magnet.append(x_line_reco_after)
 
         # calculate reconstruction of momentum and the uncertainty
         p_T_reco, p_T_reco_unc = magnet_10_0_5.reconstruct_momentum(p.q, p.s0reco, p.sMagnetreco, p.s0recoUncert, p.sMagnetrecoUncert)
         p_Ts_reco.append(p_T_reco)
-        p_Ts_unc.append(p_T_reco)
+        p_Ts_unc.append(p_T_reco_unc)
+
+        true_false.append(np.any(hitpoints_unc[0] == 0))
+    print()
+    print("z before:", z_detectors[:zbegin_index+1])
+    print("z after: ", z_detectors[zbegin_index+1:])
+    print()
+
 
 
     ## d) calculate histograms of differences ##
     # prepare plots
-    fig, ax = plt.subplots(2, 8)
+    fig, ax = plt.subplots(2, 5, figsize=(20, 10))
+    fig.tight_layout(pad=3.0)
     ax = ax.flatten()
 
     # calculate differences between reco and true
@@ -415,25 +406,61 @@ def Momentum_Resolution():
     mean = np.mean(p_T_diff)
     std = np.std(p_T_diff)
 
+    print(f"--- p_T difference histogram statistics ---")
+    print(f"Mean: {mean} [GeV]")
+    print(f"Std: {std} [GeV]")
+    print()
+
     # plot histogram
-    ax[0].hist(p_T_diff, bins=50, kde=True, color='skyblue', edgecolor='black')
+    sns.histplot(p_T_diff, bins=50, stat='density', kde=True, color='skyblue', ax=ax[0])
+    ax[0].axvline(mean, color='red', linestyle='--', label=f'Mean: {mean:.4f}')
+    ax[0].axvline(mean + std, color='orange', linestyle=':', label=f'Std: {std:.4f}')
+    ax[0].axvline(mean - std, color='orange', linestyle=':')
+    ax[0].set_title("p_T diff histogram, p_T_true=0.3 GeV")
+    ax[0].set_xlabel("p_T_reco − p_T_true [GeV]")
+    ax[0].set_ylabel("Density")
+    ax[0].legend()
+    plt.show()
 
 
     ## e) calculate histogram  of pulls ##
     # prepare plots
-    fig2, bx = plt.subplots(2, 8)
+    fig2, bx = plt.subplots(2, 5, figsize=(20, 10))
+    fig2.tight_layout(pad=3.0)
     bx = bx.flatten()
 
     # calculate pull
-    p_T_pulls = pull(p_T_reco_vec, p_T_true, unc_vec)
+    p_T_pulls = pull(np.array(p_Ts_reco), p_T_true, p_Ts_unc)
 
     # calculate histogram, mean, std
     hist, bins = np.histogram(p_T_pulls, bins=50)
     mean = np.mean(p_T_pulls)
     std = np.std(p_T_pulls)
 
+    print(f"--- p_T pull histogram statistics ---")
+    print(f"Mean: {mean} [GeV]")
+    print(f"Std: {std} [GeV]")
+    print()
+
     # plot histogram
-    bx[0].hist(p_T_pulls, bins=50, kde=True, color='skyblue', edgecolor='black')
+    sns.histplot(p_T_pulls, bins=50, stat='density', kde=True, color='skyblue', ax=bx[0])
+    bx[0].axvline(mean, color='red', linestyle='--', label=f'Mean: {mean:.4f}')
+    bx[0].axvline(mean + std, color='orange', linestyle=':', label=f'Std: {std:.4f}')
+    bx[0].axvline(mean - std, color='orange', linestyle=':')
+    bx[0].set_title("p_T pull histogram, p_T_true=0.3 GeV")
+    bx[0].set_xlabel("p_T_reco pull")
+    bx[0].set_ylabel("Density")
+    bx[0].legend()
+    plt.show()
+
+
+    ### Calculate significance of pull-mean/pull-std difference from 0/1 ###
+
+
+    ### Repeat c)-e) for p_T_true in {0.1,1,2,5,10,20} GeV ###
+
+
+    ### Repeat c)-e) for B in in {1.0,1.5,2.0} T, p_T_true = 0.3 GeV ###
 
 # run Part 4 Momentum Resolution
 Momentum_Resolution()
