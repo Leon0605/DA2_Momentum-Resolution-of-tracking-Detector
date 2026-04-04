@@ -366,22 +366,49 @@ def Momentum_Resolution():
 
 
     ## c) generate hitpoints for all 1000 particles and reconstruct p_T
+    hitpoints = []
+    hitpoints_unc = []
+    for p in particles:
+        hit , unc = generatePoints(p)
+        hitpoints.append(hit)
+        hitpoints_unc.append(unc)
+    
+    p_Ts_reco = []
+    p_Ts_unc = []
+    x_line_reco_before_magnet = []
+    x_line_reco_after_magnet = []
+    for i, p in enumerate(particles):
+        # calculate linear regression before magnet
+        coeffs_before, cov_before = optimize.curve_fit(line, z_detectors[:zbegin_index+1], hitpoints[i][:zbegin_index+1], sigma=hitpoints_unc[0][:zbegin_index+1], absolute_sigma=True)
+        p.s0reco, p.x0reco = coeffs_before
+        p.s0recoUncert, p.x0recoUncert = np.sqrt(np.diag(cov_before))
 
-    ## calculate histograms of differences
+        # calculate linear regression after magnet
+        coeffs_after, cov_after = optimize.curve_fit(line, z_detectors[zbegin_index+1:], hitpoints[i][zbegin_index+1:], sigma=hitpoints_unc[0][zbegin_index+1:], absolute_sigma=True)
+        p.sMagnetreco, p.xMagnetreco = coeffs_after
+        p.sMagnetrecoUncert, p.xMagnetrecoUncert = np.sqrt(np.diag(cov_after))
+
+        # calculate line before magnet
+        x_line_reco_before = line(z_detectors[:zbegin_index+1], p.s0reco, p.x0reco)
+        x_line_reco_before_magnet.append(x_line_reco_before)
+
+        # calculate line after magnet
+        x_line_reco_after = line(z_detectors[zbegin_index+1:], p.sMagnetreco, p.xMagnetreco)
+        x_line_reco_after_magnet.append(x_line_reco_after)
+
+        # calculate reconstruction of momentum and the uncertainty
+        p_T_reco, p_T_reco_unc = magnet_10_0_5.reconstruct_momentum(p.q, p.s0reco, p.sMagnetreco, p.s0recoUncert, p.sMagnetrecoUncert)
+        p_Ts_reco.append(p_T_reco)
+        p_Ts_unc.append(p_T_reco)
+
+
+    ## d) calculate histograms of differences ##
     # prepare plots
     fig, ax = plt.subplots(2, 8)
     ax = ax.flatten()
 
-    # particle informations
-    s_reco_before_vec = 0
-    s_reco_after_vec = 0
-    q_vec = 0
-
-    # calculate reconstruction of momentum and the uncertainty
-    p_T_reco_vec, unc_vec = magnet_10_0_5.reconstruct_momentum(q, s_reco_before, s_reco_after)
-
     # calculate differences between reco and true
-    p_T_diff = p_T_reco_vec - p_T_true
+    p_T_diff = np.array(p_Ts_reco) - p_T_true
 
     # calculate histogram, mean, std
     hist, bins = np.histogram(p_T_diff, bins=50)
@@ -391,10 +418,11 @@ def Momentum_Resolution():
     # plot histogram
     ax[0].hist(p_T_diff, bins=50, kde=True, color='skyblue', edgecolor='black')
 
-    ## calculate histogram  of pulls
+
+    ## e) calculate histogram  of pulls ##
     # prepare plots
-    fig, ax = plt.subplots(2, 8)
-    ax = ax.flatten()
+    fig2, bx = plt.subplots(2, 8)
+    bx = bx.flatten()
 
     # calculate pull
     p_T_pulls = pull(p_T_reco_vec, p_T_true, unc_vec)
@@ -405,7 +433,7 @@ def Momentum_Resolution():
     std = np.std(p_T_pulls)
 
     # plot histogram
-    ax[0].hist(p_T_pulls, bins=50, kde=True, color='skyblue', edgecolor='black')
+    bx[0].hist(p_T_pulls, bins=50, kde=True, color='skyblue', edgecolor='black')
 
 # run Part 4 Momentum Resolution
 Momentum_Resolution()
