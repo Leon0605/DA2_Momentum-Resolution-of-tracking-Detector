@@ -74,7 +74,7 @@ class Magnet:
         # calculate output x
         z_exit = self.z_end
         discriminant = rho**2 - (z_exit - M_z)**2
-        p.xMagnet = M_x + np.sign(rho) * np.sqrt(max(discriminant, 0.0))
+        p.xMagnet = M_x + np.sign(rho) * np.sqrt(np.maximum(discriminant, 0.0))
 
         # -calculate output s
         # Tangente of circle at output: slope = -(z_exit - M_z) / (x_exit - M_x)
@@ -320,7 +320,7 @@ def Momentum_Resolution():
 
     # plot detector layers
     for z in z_detectors:
-        plt.plot([z, z + 10.0**(-6)], [min(particle_warmup.xactual)-2, max(particle_warmup.xactual)+2], color="lightgrey")
+        plt.plot([z, z + 10.0**(-6)], [np.min(hits_warmup)-0.5, np.max(hits_warmup)+0.5], linewidth=1, color="lightgrey")
 
     # plot reconstructed trajectory
     #plt.scatter(z_detectors, hits_warmup, marker="x", color="black", s=0.5, label='Uncertainties Hit positions')
@@ -332,7 +332,7 @@ def Momentum_Resolution():
     plt.plot(z_detectors[zbegin_index+1:], particle_warmup.xactual[zbegin_index+1:],linestyle="dashed", color="orange")
     plt.plot(curve_z_i, curve_interpolation_warmup, linestyle="dashed", color="orange")
     # plot uncertainty
-    plt.errorbar(z_detectors, hits_warmup, yerr=unc_warmup, fmt='.', color="red", label='Uncertainties Hit positions')
+    plt.errorbar(z_detectors, hits_warmup, yerr=unc_warmup, fmt='.', markersize=3, linewidth=1, color="red", label='Uncertainties Hit positions')
     # plot infos
     plt.xlabel("z [mm]")
     plt.ylabel("x [mm]")
@@ -341,19 +341,32 @@ def Momentum_Resolution():
 
     # calculate reconstruction of p_T
     p_T_reco_warmup, p_T_reco_unc_warmup = magnet_10_0_5.reconstruct_momentum(particle_warmup.q, particle_warmup.s0reco, particle_warmup.sMagnetreco, particle_warmup.s0recoUncert, particle_warmup.sMagnetrecoUncert)
-    print(f"p_T true: {p_T_true}")
-    print(f"p_T reconstructed: {p_T_reco_warmup:.4f}")
-    print(f"diff p_T true and reco: {np.abs(p_T_true - p_T_reco_warmup):.4f}")
-    print(f"uncertainty of reconstruction: {p_T_reco_unc_warmup:.4f}")
+    print(f"p_T true: {p_T_true} GeV")
+    print(f"p_T reconstructed: {p_T_reco_warmup:.5f} GeV")
+    print(f"diff p_T true and reco: {np.abs(p_T_true - p_T_reco_warmup):.5f} GeV")
+    print(f"uncertainty of reconstruction: {p_T_reco_unc_warmup:.5f} GeV")
     print()
 
 
+    ### Estimate momentum resolution ###
+    # generate 1000 particles
+    particles = [particle(p_T_true) for i in range(1000)] 
+    print(len(particles))
+
+    # extrapolate trajectories
+    for p in particles:
+        # calculate change because of magnet
+        M_z, M_x = magnet_10_0_5.change(p)
+
+        for z in z_detectors[:zbegin_index+1]:
+            cellsHit(p, z) # calculate hits before magnets
+
+        for z in z_detectors[zbegin_index+1:]:
+            cellsHit(p, z, zMagnet=magnet_10_0_5.z_end) # calculate hits after magnet
 
 
+    ## c) generate hitpoints for all 1000 particles and reconstruct p_T
 
-
-
-    ### Estimate momentum resolution (vectorized with numpy)
     ## calculate histograms of differences
     # prepare plots
     fig, ax = plt.subplots(2, 8)
