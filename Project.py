@@ -335,7 +335,7 @@ def Momentum_Resolution():
     # plot uncertainty
     plt.errorbar(z_detectors, hits_warmup, yerr=unc_warmup, fmt='.', color="red", label='Uncertainties Hit positions')
     # plot infos
-    plt.xlabel("z")
+    plt.xlabel("z")         # IMPORTANT ADD UNITITSSSSSSSSS
     plt.ylabel("x")
     plt.legend()
     plt.show()
