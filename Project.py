@@ -254,15 +254,13 @@ def Momentum_Resolution():
     zbegin_index = n_before
     z_end = z_detectors[-1]
 
-    print(f"detector setup (z-coord): {z_detectors}")
-    print()
 
-
-    ### Warm-up Exercise
+    ### Warm-up Exercise ###
     p_T_true = 0.3
     magnet_10_0_5 = Magnet(L, B, n_before*dZ)
 
-    # a) Waiting for Code of Part 3 (Work in PROGRESS)
+
+    ## a) Extrapolate trajectory and generate hitpoints with uncertainties ##
     particle_warmup = particle(p_T_true)
     M_z, M_x = magnet_10_0_5.change(particle_warmup) # calculate change because of magnet
 
@@ -273,21 +271,22 @@ def Momentum_Resolution():
     for z in z_detectors[zbegin_index+1:]:
         cellsHit(particle_warmup, z, zMagnet=magnet_10_0_5.z_end) # calculate hits after magnet
 
-    print(f"slope before magnet: {particle_warmup.s0}")
-    print(f"slope after magnet: {particle_warmup.sMagnet}")
-    print(f"x-coord beginning: {particle_warmup.x0}")
-    print(f"x-coord before magnet: {particle_warmup.xactual[zbegin_index]}")
-    print(f"x-coord after magnet: {particle_warmup.xMagnet}")
-    print()
-
-    print(particle_warmup.q)
-
-    print(f"hitpoints before magnet: {particle_warmup.xactual[:zbegin_index]}")
-    print(f"hitpoints after magnet: {particle_warmup.xactual[zbegin_index+1:]}")
-    print()
-    print(f"hitpoints: {particle_warmup.xactual}")
-    print(f"cell index: {particle_warmup.xactual}")
-    print()
+    #print(f"detector setup (z-coord): {z_detectors}")
+    #print()
+    #print(f"slope before magnet: {particle_warmup.s0}")
+    #print(f"slope after magnet: {particle_warmup.sMagnet}")
+    #print(f"x-coord beginning: {particle_warmup.x0}")
+    #print(f"x-coord before magnet: {particle_warmup.xactual[zbegin_index]}")
+    #print(f"x-coord after magnet: {particle_warmup.xMagnet}")
+    #print()
+    #print(particle_warmup.q)
+    #print()
+    #print(f"hitpoints before magnet: {particle_warmup.xactual[:zbegin_index]}")
+    #print(f"hitpoints after magnet: {particle_warmup.xactual[zbegin_index+1:]}")
+    #print()
+    #print(f"hitpoints: {particle_warmup.xactual}")
+    #print(f"cell index: {particle_warmup.xactual}")
+    #print()
 
     # calculate trajectory through magnet
     curve_z_i, curve_interpolation_warmup = magnet_10_0_5.change_interpolation_1(particle_warmup.xactual[zbegin_index], particle_warmup.s0, p_T_true, particle_warmup.q)
@@ -295,6 +294,8 @@ def Momentum_Resolution():
     # calculate hitposition and uncertainty
     hits_warmup, unc_warmup = generatePoints(particle_warmup)
 
+
+    ## b) Fit straight lines and calculate reco p_T ##
     # calculate linear regression before magnet
     coeffs_before, cov_before = optimize.curve_fit(line, z_detectors[:zbegin_index+1], hits_warmup[:zbegin_index+1], sigma=unc_warmup[:zbegin_index+1], absolute_sigma=True)
     particle_warmup.s0reco, particle_warmup.x0reco = coeffs_before
@@ -314,15 +315,13 @@ def Momentum_Resolution():
     # calculate reconstructed trajectory through magnet
     curve_z_i, curve_interpolation_reco_warmup = magnet_10_0_5.change_interpolation_2(x_line_reco_before_warmup[zbegin_index], particle_warmup.s0reco, particle_warmup.xMagnetreco, particle_warmup.sMagnetreco)
     
-
-    # plot of simulation of part 4a
+    # plot of simulation
     plt.figure()
 
     # plot detector layers
     for z in z_detectors:
         plt.plot([z, z + 10.0**(-6)], [min(particle_warmup.xactual)-2, max(particle_warmup.xactual)+2], color="lightgrey")
 
-    
     # plot reconstructed trajectory
     #plt.scatter(z_detectors, hits_warmup, marker="x", color="black", s=0.5, label='Uncertainties Hit positions')
     plt.plot(z_detectors[:zbegin_index+1], x_line_reco_before_warmup, color="lightblue", label='Reconstructed Trajectory')
@@ -335,19 +334,23 @@ def Momentum_Resolution():
     # plot uncertainty
     plt.errorbar(z_detectors, hits_warmup, yerr=unc_warmup, fmt='.', color="red", label='Uncertainties Hit positions')
     # plot infos
-    plt.xlabel("z")         # IMPORTANT ADD UNITITSSSSSSSSS
-    plt.ylabel("x")
+    plt.xlabel("z [mm]")
+    plt.ylabel("x [mm]")
     plt.legend()
     plt.show()
 
+    # calculate reconstruction of p_T
+    p_T_reco_warmup, p_T_reco_unc_warmup = magnet_10_0_5.reconstruct_momentum(particle_warmup.q, particle_warmup.s0reco, particle_warmup.sMagnetreco, particle_warmup.s0recoUncert, particle_warmup.sMagnetrecoUncert)
+    print(f"p_T true: {p_T_true}")
+    print(f"p_T reconstructed: {p_T_reco_warmup:.4f}")
+    print(f"diff p_T true and reco: {np.abs(p_T_true - p_T_reco_warmup):.4f}")
+    print(f"uncertainty of reconstruction: {p_T_reco_unc_warmup:.4f}")
+    print()
 
 
-    # b) Waiting for code of Part 3 but code for reconstruction done (WORK IN PROGRESS)
-    s_reco_before = 0
-    s_reco_after = 0
-    q = 0
 
-    p_T_reco = magnet_10_0_5.reconstruct_momentum(q, s_reco_before, s_reco_after)
+
+
 
 
     ### Estimate momentum resolution (vectorized with numpy)
