@@ -391,10 +391,9 @@ def Momentum_Resolution():
     print()
 
 
-
     ## d) calculate histograms of differences ##
     # prepare plots
-    fig, ax = plt.subplots(2, 5, figsize=(20, 10))
+    fig, ax = plt.subplots(2, 5, figsize=(20, 12))
     fig.tight_layout(pad=3.0)
     ax = ax.flatten()
 
@@ -406,26 +405,25 @@ def Momentum_Resolution():
     mean = np.mean(p_T_diff)
     std = np.std(p_T_diff)
 
-    print(f"--- p_T difference histogram statistics ---")
+    print(f"--- p_T difference histogram statistics p_T_true={p_T_true} GeV, B = {magnet_10_0_5.B} T ---")
     print(f"Mean: {mean} [GeV]")
     print(f"Std: {std} [GeV]")
     print()
 
     # plot histogram
-    sns.histplot(p_T_diff, bins=50, stat='density', kde=True, color='skyblue', ax=ax[0])
-    ax[0].axvline(mean, color='red', linestyle='--', label=f'Mean: {mean:.4f}')
-    ax[0].axvline(mean + std, color='orange', linestyle=':', label=f'Std: {std:.4f}')
-    ax[0].axvline(mean - std, color='orange', linestyle=':')
+    sns.histplot(p_T_diff, bins="auto", stat="density", kde=True, color="skyblue", ax=ax[0])
+    ax[0].axvline(mean, color="red", linestyle="dashed", label=f"Mean: {mean:.4f}")
+    ax[0].axvline(mean + std, color="orange", linestyle=":", label=f"Std: {std:.4f}")
+    ax[0].axvline(mean - std, color="orange", linestyle=":")
     ax[0].set_title("p_T diff histogram, p_T_true=0.3 GeV")
     ax[0].set_xlabel("p_T_reco − p_T_true [GeV]")
     ax[0].set_ylabel("Density")
     ax[0].legend()
-    plt.show()
 
 
     ## e) calculate histogram  of pulls ##
     # prepare plots
-    fig2, bx = plt.subplots(2, 5, figsize=(20, 10))
+    fig2, bx = plt.subplots(2, 5, figsize=(20, 12))
     fig2.tight_layout(pad=3.0)
     bx = bx.flatten()
 
@@ -437,13 +435,13 @@ def Momentum_Resolution():
     mean = np.mean(p_T_pulls)
     std = np.std(p_T_pulls)
 
-    print(f"--- p_T pull histogram statistics ---")
+    print(f"--- p_T pull histogram statistics p_T_true={p_T_true} GeV, B = {magnet_10_0_5.B} T ---")
     print(f"Mean: {mean} [GeV]")
     print(f"Std: {std} [GeV]")
     print()
 
     # plot histogram
-    sns.histplot(p_T_pulls, bins=50, stat='density', kde=True, color='skyblue', ax=bx[0])
+    sns.histplot(p_T_pulls, bins="auto", stat='density', kde=True, color='skyblue', ax=bx[0])
     bx[0].axvline(mean, color='red', linestyle='--', label=f'Mean: {mean:.4f}')
     bx[0].axvline(mean + std, color='orange', linestyle=':', label=f'Std: {std:.4f}')
     bx[0].axvline(mean - std, color='orange', linestyle=':')
@@ -451,16 +449,278 @@ def Momentum_Resolution():
     bx[0].set_xlabel("p_T_reco pull")
     bx[0].set_ylabel("Density")
     bx[0].legend()
-    plt.show()
-
-
-    ### Calculate significance of pull-mean/pull-std difference from 0/1 ###
 
 
     ### Repeat c)-e) for p_T_true in {0.1,1,2,5,10,20} GeV ###
+    ### Estimate momentum resolution ###
+    p_T_true_array = [0.1,1,2,5,10,20]
+
+    # generate 1000 particles
+    for index, p_T in enumerate(p_T_true_array, 1):
+        particles = [particle(p_T) for i in range(1000)] 
+        print(len(particles))
+        print()
+
+        # extrapolate trajectories
+        for p in particles:
+            # calculate change because of magnet
+            M_z, M_x = magnet_10_0_5.change(p)
+
+            for z in z_detectors[:zbegin_index+1]:
+                cellsHit(p, z) # calculate hits before magnets
+
+            for z in z_detectors[zbegin_index+1:]:
+                cellsHit(p, z, zMagnet=magnet_10_0_5.z_end) # calculate hits after magnet
+
+
+        ## generate hitpoints for all 1000 particles and reconstruct p_T
+        hitpoints = []
+        hitpoints_unc = []
+        for p in particles:
+            hit , unc = generatePoints(p)
+            hitpoints.append(hit)
+            hitpoints_unc.append(unc)
+
+        p_Ts_reco = []
+        p_Ts_unc = []
+        x_line_reco_before_magnet = []
+        x_line_reco_after_magnet = []
+        true_false= []
+        for i, p in enumerate(particles):
+            # calculate linear regression before magnet
+            coeffs_before, cov_before = optimize.curve_fit(line, z_detectors[:zbegin_index+1], hitpoints[i][:zbegin_index+1], sigma=hitpoints_unc[i][:zbegin_index+1], absolute_sigma=True)
+            p.s0reco, p.x0reco = coeffs_before
+            p.s0recoUncert, p.x0recoUncert = np.sqrt(np.diag(cov_before))
+
+            # calculate linear regression after magnet
+            coeffs_after, cov_after = optimize.curve_fit(line, z_detectors[zbegin_index+1:], hitpoints[i][zbegin_index+1:], sigma=hitpoints_unc[i][zbegin_index+1:], absolute_sigma=True)
+            p.sMagnetreco, intercept_after_reco = coeffs_after
+            p.xMagnetreco = line(magnet_10_0_5.z_end, p.sMagnetreco, intercept_after_reco)
+            unc_slope, unc_intercept = np.sqrt(np.diag(cov_after))
+            p.sMagnetrecoUncert = unc_slope
+            p.xMagnetrecoUncert = np.sqrt((magnet_10_0_5.z_end * unc_slope)**2 + unc_intercept**2)
+
+            # calculate line before magnet
+            x_line_reco_before = line(z_detectors[:zbegin_index+1], p.s0reco, p.x0reco)
+            x_line_reco_before_magnet.append(x_line_reco_before)
+
+            # calculate line after magnet
+            x_line_reco_after = line(z_detectors[zbegin_index+1:], p.sMagnetreco, p.xMagnetreco - p.sMagnetreco * magnet_10_0_5.z_end)
+            x_line_reco_after_magnet.append(x_line_reco_after)
+
+            # when cov matrix has inf values then make it nan
+            if np.any(np.isinf(cov_before)) or np.any(np.isinf(cov_after)):
+                p_Ts_reco.append(np.nan)
+                p_Ts_unc.append(np.nan)
+                continue
+
+            # calculate reconstruction of momentum and the uncertainty
+            p_T_reco, p_T_reco_unc = magnet_10_0_5.reconstruct_momentum(p.q, p.s0reco, p.sMagnetreco, p.s0recoUncert, p.sMagnetrecoUncert)
+            p_Ts_reco.append(p_T_reco)
+            p_Ts_unc.append(p_T_reco_unc)
+
+            true_false.append(np.any(hitpoints_unc[0] == 0))
+        
+        # filter nan/inf values
+        valid_mask = np.isfinite(p_Ts_reco) & np.isfinite(p_Ts_unc)
+
+        p_Ts_reco_valid = np.array(p_Ts_reco)[valid_mask]
+        p_Ts_unc_valid  = np.array(p_Ts_unc)[valid_mask]
+
+        n_invalid = np.sum(~valid_mask)
+        if n_invalid > 0:
+            print()
+            print(f"{n_invalid} trajectories because of inf/nan removed")
+            print()
+
+
+        ## calculate histograms of differences ##
+        # calculate differences between reco and true
+        p_T_diff = np.array(p_Ts_reco_valid) - p_T
+
+        # calculate histogram, mean, std
+        hist, bins = np.histogram(p_T_diff, bins=50)
+        mean = np.mean(p_T_diff)
+        std = np.std(p_T_diff)
+
+        print(f"--- p_T difference histogram statistics p_T_true={p_T} GeV, B={magnet_10_0_5.B} T ---")
+        print(f"Mean: {mean} [GeV]")
+        print(f"Std: {std} [GeV]")
+        print()
+
+        # plot histogram
+        sns.histplot(p_T_diff, bins="auto", stat='density', kde=True, color='skyblue', ax=ax[index])
+        ax[index].axvline(mean, color='red', linestyle='--', label=f'Mean: {mean:.4f}')
+        ax[index].axvline(mean + std, color='orange', linestyle=':', label=f'Std: {std:.4f}')
+        ax[index].axvline(mean - std, color='orange', linestyle=':')
+        ax[index].set_title(f"p_T diff histogram, p_T_true={p_T} GeV")
+        ax[index].set_xlabel("p_T_reco − p_T_true [GeV]")
+        ax[index].set_ylabel("Density")
+        ax[index].legend()
+
+
+        ## calculate histogram  of pulls ##
+        # calculate pull
+        p_T_pulls = pull(p_Ts_reco_valid, p_T, p_Ts_unc_valid)
+
+        # calculate histogram, mean, std
+        hist, bins = np.histogram(p_T_pulls, bins=50)
+        mean = np.mean(p_T_pulls)
+        std = np.std(p_T_pulls)
+
+        print(f"--- p_T pull histogram statistics p_T_true={p_T} GeV, B={magnet_10_0_5.B} T ---")
+        print(f"Mean: {mean} [GeV]")
+        print(f"Std: {std} [GeV]")
+        print()
+
+        # plot histogram
+        sns.histplot(p_T_pulls, bins="auto", stat='density', kde=True, color='skyblue', ax=bx[index])
+        bx[index].axvline(mean, color='red', linestyle='--', label=f'Mean: {mean:.4f}')
+        bx[index].axvline(mean + std, color='orange', linestyle=':', label=f'Std: {std:.4f}')
+        bx[index].axvline(mean - std, color='orange', linestyle=':')
+        bx[index].set_title(f"p_T pull histogram, p_T_true={p_T} GeV")
+        bx[index].set_xlabel("p_T_reco pull")
+        bx[index].set_ylabel("Density")
+        bx[index].legend()
 
 
     ### Repeat c)-e) for B in in {1.0,1.5,2.0} T, p_T_true = 0.3 GeV ###
+    ### Estimate momentum resolution ###
+    B_array = [1.0,1.5,2.0]
+
+    # generate 1000 particles
+    for index, B_i in enumerate(B_array, 7):
+        magnet_10 = Magnet(L, B_i, n_before*dZ)
+        particles = [particle(p_T_true) for i in range(1000)] 
+        print(len(particles))
+        print()
+
+        # extrapolate trajectories
+        for p in particles:
+            # calculate change because of magnet
+            M_z, M_x = magnet_10.change(p)
+
+            for z in z_detectors[:zbegin_index+1]:
+                cellsHit(p, z) # calculate hits before magnets
+
+            for z in z_detectors[zbegin_index+1:]:
+                cellsHit(p, z, zMagnet=magnet_10.z_end) # calculate hits after magnet
+
+
+        ## generate hitpoints for all 1000 particles and reconstruct p_T
+        hitpoints = []
+        hitpoints_unc = []
+        for p in particles:
+            hit , unc = generatePoints(p)
+            hitpoints.append(hit)
+            hitpoints_unc.append(unc)
+
+        p_Ts_reco = []
+        p_Ts_unc = []
+        x_line_reco_before_magnet = []
+        x_line_reco_after_magnet = []
+        true_false= []
+        for i, p in enumerate(particles):
+            # calculate linear regression before magnet
+            coeffs_before, cov_before = optimize.curve_fit(line, z_detectors[:zbegin_index+1], hitpoints[i][:zbegin_index+1], sigma=hitpoints_unc[i][:zbegin_index+1], absolute_sigma=True)
+            p.s0reco, p.x0reco = coeffs_before
+            p.s0recoUncert, p.x0recoUncert = np.sqrt(np.diag(cov_before))
+
+            # calculate linear regression after magnet
+            coeffs_after, cov_after = optimize.curve_fit(line, z_detectors[zbegin_index+1:], hitpoints[i][zbegin_index+1:], sigma=hitpoints_unc[i][zbegin_index+1:], absolute_sigma=True)
+            p.sMagnetreco, intercept_after_reco = coeffs_after
+            p.xMagnetreco = line(magnet_10.z_end, p.sMagnetreco, intercept_after_reco)
+            unc_slope, unc_intercept = np.sqrt(np.diag(cov_after))
+            p.sMagnetrecoUncert = unc_slope
+            p.xMagnetrecoUncert = np.sqrt((magnet_10.z_end * unc_slope)**2 + unc_intercept**2)
+
+            # calculate line before magnet
+            x_line_reco_before = line(z_detectors[:zbegin_index+1], p.s0reco, p.x0reco)
+            x_line_reco_before_magnet.append(x_line_reco_before)
+
+            # calculate line after magnet
+            x_line_reco_after = line(z_detectors[zbegin_index+1:], p.sMagnetreco, p.xMagnetreco - p.sMagnetreco * magnet_10.z_end)
+            x_line_reco_after_magnet.append(x_line_reco_after)
+
+            # when cov matrix has inf values then make it nan
+            if np.any(np.isinf(cov_before)) or np.any(np.isinf(cov_after)):
+                p_Ts_reco.append(np.nan)
+                p_Ts_unc.append(np.nan)
+                continue
+
+            # calculate reconstruction of momentum and the uncertainty
+            p_T_reco, p_T_reco_unc = magnet_10.reconstruct_momentum(p.q, p.s0reco, p.sMagnetreco, p.s0recoUncert, p.sMagnetrecoUncert)
+            p_Ts_reco.append(p_T_reco)
+            p_Ts_unc.append(p_T_reco_unc)
+
+            true_false.append(np.any(hitpoints_unc[0] == 0))
+        
+        # filter nan/inf values
+        valid_mask = np.isfinite(p_Ts_reco) & np.isfinite(p_Ts_unc)
+
+        p_Ts_reco_valid = np.array(p_Ts_reco)[valid_mask]
+        p_Ts_unc_valid  = np.array(p_Ts_unc)[valid_mask]
+
+        n_invalid = np.sum(~valid_mask)
+        if n_invalid > 0:
+            print()
+            print(f"{n_invalid} trajectories because of inf/nan removed")
+            print()
+
+
+        ## calculate histograms of differences ##
+        # calculate differences between reco and true
+        p_T_diff = np.array(p_Ts_reco_valid) - p_T_true
+
+        # calculate histogram, mean, std
+        hist, bins = np.histogram(p_T_diff, bins=50)
+        mean = np.mean(p_T_diff)
+        std = np.std(p_T_diff)
+
+        print(f"--- p_T difference histogram statistics p_T_true={p_T_true} GeV, B={magnet_10.B} T ---")
+        print(f"Mean: {mean} [GeV]")
+        print(f"Std: {std} [GeV]")
+        print()
+
+        # plot histogram
+        sns.histplot(p_T_diff, bins="auto", stat='density', kde=True, color='skyblue', ax=ax[index])
+        ax[index].axvline(mean, color='red', linestyle='--', label=f'Mean: {mean:.4f}')
+        ax[index].axvline(mean + std, color='orange', linestyle=':', label=f'Std: {std:.4f}')
+        ax[index].axvline(mean - std, color='orange', linestyle=':')
+        ax[index].set_title(f"p_T diff histogram, p_T_true={p_T_true} GeV")
+        ax[index].set_xlabel("p_T_reco − p_T_true [GeV]")
+        ax[index].set_ylabel("Density")
+        ax[index].legend()
+
+
+        ## calculate histogram  of pulls ##
+        # calculate pull
+        p_T_pulls = pull(p_Ts_reco_valid, p_T_true, p_Ts_unc_valid)
+
+        # calculate histogram, mean, std
+        hist, bins = np.histogram(p_T_pulls, bins=50)
+        mean = np.mean(p_T_pulls)
+        std = np.std(p_T_pulls)
+
+        print(f"--- p_T pull histogram statistics p_T_true={p_T_true} GeV, B={magnet_10.B} T ---")
+        print(f"Mean: {mean} [GeV]")
+        print(f"Std: {std} [GeV]")
+        print()
+
+        # plot histogram
+        sns.histplot(p_T_pulls, bins="auto", stat='density', kde=True, color='skyblue', ax=bx[index])
+        bx[index].axvline(mean, color='red', linestyle='--', label=f'Mean: {mean:.4f}')
+        bx[index].axvline(mean + std, color='orange', linestyle=':', label=f'Std: {std:.4f}')
+        bx[index].axvline(mean - std, color='orange', linestyle=':')
+        bx[index].set_title(f"p_T pull histogram, p_T_true={p_T_true} GeV")
+        bx[index].set_xlabel("p_T_reco pull")
+        bx[index].set_ylabel("Density")
+        bx[index].legend()
+    plt.show()
+    
+    
+    ### Calculate significance of pull-mean/pull-std difference from 0/1 ###
+
 
 # run Part 4 Momentum Resolution
 Momentum_Resolution()
