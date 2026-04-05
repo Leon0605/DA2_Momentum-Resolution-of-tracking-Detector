@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from scipy import optimize
 from scipy.interpolate import CubicHermiteSpline
+from scipy.stats import gaussian_kde, norm
 from sklearn.linear_model import LinearRegression
 
 
@@ -88,9 +89,9 @@ class Magnet:
 
         rho = p_T / (0.3 * q * self.B) * 1000
 
-        norm = np.sqrt(1.0 + s_entry**2)
-        M_x  = x_entry     + rho * (-1.0 / norm)
-        M_z  = self.z_beginn + rho * (s_entry / norm)
+        nor = np.sqrt(1.0 + s_entry**2)
+        M_x  = x_entry     + rho * (-1.0 / nor)
+        M_z  = self.z_beginn + rho * (s_entry / nor)
 
         interpolated = M_x + np.sign(rho) * np.sqrt(np.maximum(rho**2 - (z_i - M_z)**2, 0))
         return z_i, interpolated
@@ -297,11 +298,6 @@ def Momentum_Resolution():
     print(f"uncertainty of reconstruction: {p_T_reco_unc_warmup:.5f} GeV")
     print()
 
-    print("Interpolation Endpunkt:      ", curve_interpolation_reco_warmup[-1])
-    print("xMagnetreco:                 ", particle_warmup.xMagnetreco)
-    print("Line erster Punkt bei z=200: ", x_line_reco_after_warmup[0])
-    print()
-
     # plot of simulation
     plt.figure(figsize=(20,12))
 
@@ -319,7 +315,7 @@ def Momentum_Resolution():
     plt.plot(z_detectors[zbegin_index+1:], particle_warmup.xactual[zbegin_index+1:],linestyle="dashed", color="orange")
     plt.plot(curve_z_i, curve_interpolation_warmup, linestyle="dashed", color="orange")
     # plot uncertainty
-    plt.errorbar(z_detectors, hits_warmup, yerr=unc_warmup, fmt='.', markersize=3, linewidth=1, color="red", label='Uncertainties Hit positions')
+    plt.errorbar(z_detectors, hits_warmup, yerr=unc_warmup, fmt='.', markersize=3, linewidth=1, color="red", label="Uncertainties Hit positions")
     # plot infos
     plt.xlabel("z [mm]")
     plt.ylabel("x [mm]")
@@ -385,6 +381,7 @@ def Momentum_Resolution():
         p_Ts_unc.append(p_T_reco_unc)
 
         true_false.append(np.any(hitpoints_unc[0] == 0))
+
     print()
     print("z before:", z_detectors[:zbegin_index+1])
     print("z after: ", z_detectors[zbegin_index+1:])
@@ -394,7 +391,7 @@ def Momentum_Resolution():
     ## d) calculate histograms of differences ##
     # prepare plots
     fig, ax = plt.subplots(2, 5, figsize=(20, 12))
-    fig.tight_layout(pad=3.0)
+    #fig.tight_layout(pad=3.0)
     ax = ax.flatten()
 
     # calculate differences between reco and true
@@ -406,14 +403,14 @@ def Momentum_Resolution():
     std = np.std(p_T_diff)
 
     print(f"--- p_T difference histogram statistics p_T_true={p_T_true} GeV, B = {magnet_10_0_5.B} T ---")
-    print(f"Mean: {mean} [GeV]")
-    print(f"Std: {std} [GeV]")
+    print(f"μ: {mean} [GeV]")
+    print(f"σ: {std} [GeV]")
     print()
 
     # plot histogram
     sns.histplot(p_T_diff, bins="auto", stat="density", kde=True, color="skyblue", ax=ax[0])
-    ax[0].axvline(mean, color="red", linestyle="dashed", label=f"Mean: {mean:.4f}")
-    ax[0].axvline(mean + std, color="orange", linestyle=":", label=f"Std: {std:.4f}")
+    ax[0].axvline(mean, color="red", linestyle="dashed", label=f"μ: {mean:.4f}")
+    ax[0].axvline(mean + std, color="orange", linestyle=":", label=f"σ: {std:.4f}")
     ax[0].axvline(mean - std, color="orange", linestyle=":")
     ax[0].set_title("p_T diff histogram, p_T_true=0.3 GeV")
     ax[0].set_xlabel("p_T_reco − p_T_true [GeV]")
@@ -424,7 +421,7 @@ def Momentum_Resolution():
     ## e) calculate histogram  of pulls ##
     # prepare plots
     fig2, bx = plt.subplots(2, 5, figsize=(20, 12))
-    fig2.tight_layout(pad=3.0)
+    #fig2.tight_layout(pad=3.0)
     bx = bx.flatten()
 
     # calculate pull
@@ -436,19 +433,33 @@ def Momentum_Resolution():
     std = np.std(p_T_pulls)
 
     print(f"--- p_T pull histogram statistics p_T_true={p_T_true} GeV, B = {magnet_10_0_5.B} T ---")
-    print(f"Mean: {mean} [GeV]")
-    print(f"Std: {std} [GeV]")
+    print(f"μ: {mean} [GeV]")
+    print(f"σ: {std} [GeV]")
     print()
 
     # plot histogram
-    sns.histplot(p_T_pulls, bins="auto", stat='density', kde=True, color='skyblue', ax=bx[0])
-    bx[0].axvline(mean, color='red', linestyle='--', label=f'Mean: {mean:.4f}')
-    bx[0].axvline(mean + std, color='orange', linestyle=':', label=f'Std: {std:.4f}')
-    bx[0].axvline(mean - std, color='orange', linestyle=':')
+    sns.histplot(p_T_pulls, bins="auto", stat="density", kde=True, color="skyblue", ax=bx[0])
+    bx[0].axvline(mean, color="red", linestyle="dashed", label=f"μ: {mean:.4f}")
+    bx[0].axvline(mean + std, color="orange", linestyle=":", label=f"σ: {std:.4f}")
+    bx[0].axvline(mean - std, color="orange", linestyle=":")
     bx[0].set_title("p_T pull histogram, p_T_true=0.3 GeV")
     bx[0].set_xlabel("p_T_reco pull")
     bx[0].set_ylabel("Density")
     bx[0].legend()
+
+    # prepare plots for overlay plot
+    fig3, cx = plt.subplots(1, 2, figsize=(20, 12))
+    cx = cx.flatten()
+    fig3.suptitle("Pull distributions overlaid", fontsize=13, fontweight="bold")
+    x_ref = np.linspace(-10, 5, 500)
+    cx[0].plot(x_ref, norm.pdf(x_ref), linestyle="dashed", color="black", label="N(0,1) ideal")
+    cx[1].plot(x_ref, norm.pdf(x_ref), linestyle="dashed", color="black", label="N(0,1) ideal")
+    colors_pT = plt.cm.viridis(np.linspace(0, 1, 7))
+    colors_B  = plt.cm.plasma(np.linspace(0.2, 1, 4))
+
+    # calculate kde
+    cx[0].plot(x_ref, gaussian_kde(p_T_pulls)(x_ref), color=colors_pT[0], label=f"p_T=0.3 GeV (μ={mean:.2f}, σ={std:.2f})")
+    cx[1].plot(x_ref, gaussian_kde(p_T_pulls)(x_ref), color=colors_pT[0], label=f"B=0.5 T (μ={mean:.2f}, σ={std:.2f})")
 
 
     ### Repeat c)-e) for p_T_true in {0.1,1,2,5,10,20} GeV ###
@@ -544,15 +555,15 @@ def Momentum_Resolution():
         std = np.std(p_T_diff)
 
         print(f"--- p_T difference histogram statistics p_T_true={p_T} GeV, B={magnet_10_0_5.B} T ---")
-        print(f"Mean: {mean} [GeV]")
-        print(f"Std: {std} [GeV]")
+        print(f"μ: {mean} [GeV]")
+        print(f"σ: {std} [GeV]")
         print()
 
         # plot histogram
-        sns.histplot(p_T_diff, bins="auto", stat='density', kde=True, color='skyblue', ax=ax[index])
-        ax[index].axvline(mean, color='red', linestyle='--', label=f'Mean: {mean:.4f}')
-        ax[index].axvline(mean + std, color='orange', linestyle=':', label=f'Std: {std:.4f}')
-        ax[index].axvline(mean - std, color='orange', linestyle=':')
+        sns.histplot(p_T_diff, bins="auto", stat="density", kde=True, color="skyblue", ax=ax[index])
+        ax[index].axvline(mean, color="red", linestyle="dashed", label=f"μ: {mean:.4f}")
+        ax[index].axvline(mean + std, color="orange", linestyle=":", label=f"σ: {std:.4f}")
+        ax[index].axvline(mean - std, color="orange", linestyle=":")
         ax[index].set_title(f"p_T diff histogram, p_T_true={p_T} GeV")
         ax[index].set_xlabel("p_T_reco − p_T_true [GeV]")
         ax[index].set_ylabel("Density")
@@ -569,19 +580,22 @@ def Momentum_Resolution():
         std = np.std(p_T_pulls)
 
         print(f"--- p_T pull histogram statistics p_T_true={p_T} GeV, B={magnet_10_0_5.B} T ---")
-        print(f"Mean: {mean} [GeV]")
-        print(f"Std: {std} [GeV]")
+        print(f"μ: {mean} [GeV]")
+        print(f"σ: {std} [GeV]")
         print()
 
         # plot histogram
-        sns.histplot(p_T_pulls, bins="auto", stat='density', kde=True, color='skyblue', ax=bx[index])
-        bx[index].axvline(mean, color='red', linestyle='--', label=f'Mean: {mean:.4f}')
-        bx[index].axvline(mean + std, color='orange', linestyle=':', label=f'Std: {std:.4f}')
-        bx[index].axvline(mean - std, color='orange', linestyle=':')
+        sns.histplot(p_T_pulls, bins="auto", stat="density", kde=True, color="skyblue", ax=bx[index])
+        bx[index].axvline(mean, color="red", linestyle="dashed", label=f"μ: {mean:.4f}")
+        bx[index].axvline(mean + std, color="orange", linestyle=":", label=f"σ: {std:.4f}")
+        bx[index].axvline(mean - std, color="orange", linestyle=":")
         bx[index].set_title(f"p_T pull histogram, p_T_true={p_T} GeV")
         bx[index].set_xlabel("p_T_reco pull")
         bx[index].set_ylabel("Density")
         bx[index].legend()
+
+        # plot kde
+        cx[0].plot(x_ref, gaussian_kde(p_T_pulls)(x_ref), color=colors_pT[index], label=f"p_T={p_T} GeV (μ={mean:.2f}, σ={std:.2f})")
 
 
     ### Repeat c)-e) for B in in {1.0,1.5,2.0} T, p_T_true = 0.3 GeV ###
@@ -678,16 +692,16 @@ def Momentum_Resolution():
         std = np.std(p_T_diff)
 
         print(f"--- p_T difference histogram statistics p_T_true={p_T_true} GeV, B={magnet_10.B} T ---")
-        print(f"Mean: {mean} [GeV]")
-        print(f"Std: {std} [GeV]")
+        print(f"μ: {mean} [GeV]")
+        print(f"σ: {std} [GeV]")
         print()
 
         # plot histogram
-        sns.histplot(p_T_diff, bins="auto", stat='density', kde=True, color='skyblue', ax=ax[index])
-        ax[index].axvline(mean, color='red', linestyle='--', label=f'Mean: {mean:.4f}')
-        ax[index].axvline(mean + std, color='orange', linestyle=':', label=f'Std: {std:.4f}')
-        ax[index].axvline(mean - std, color='orange', linestyle=':')
-        ax[index].set_title(f"p_T diff histogram, p_T_true={p_T_true} GeV")
+        sns.histplot(p_T_diff, bins="auto", stat="density", kde=True, color="skyblue", ax=ax[index])
+        ax[index].axvline(mean, color="red", linestyle="dashed", label=f"μ: {mean:.4f}")
+        ax[index].axvline(mean + std, color="orange", linestyle=":", label=f"σ: {std:.4f}")
+        ax[index].axvline(mean - std, color="orange", linestyle=":")
+        ax[index].set_title(f"p_T diff histogram, B={magnet_10.B} T")
         ax[index].set_xlabel("p_T_reco − p_T_true [GeV]")
         ax[index].set_ylabel("Density")
         ax[index].legend()
@@ -703,19 +717,38 @@ def Momentum_Resolution():
         std = np.std(p_T_pulls)
 
         print(f"--- p_T pull histogram statistics p_T_true={p_T_true} GeV, B={magnet_10.B} T ---")
-        print(f"Mean: {mean} [GeV]")
-        print(f"Std: {std} [GeV]")
+        print(f"μ: {mean} [GeV]")
+        print(f"σ: {std} [GeV]")
         print()
 
         # plot histogram
-        sns.histplot(p_T_pulls, bins="auto", stat='density', kde=True, color='skyblue', ax=bx[index])
-        bx[index].axvline(mean, color='red', linestyle='--', label=f'Mean: {mean:.4f}')
-        bx[index].axvline(mean + std, color='orange', linestyle=':', label=f'Std: {std:.4f}')
-        bx[index].axvline(mean - std, color='orange', linestyle=':')
-        bx[index].set_title(f"p_T pull histogram, p_T_true={p_T_true} GeV")
+        sns.histplot(p_T_pulls, bins="auto", stat="density", kde=True, color="skyblue", ax=bx[index])
+        bx[index].axvline(mean, color="red", linestyle="dashed", label=f"μ: {mean:.4f}")
+        bx[index].axvline(mean + std, color="orange", linestyle=":", label=f"σ: {std:.4f}")
+        bx[index].axvline(mean - std, color="orange", linestyle=":")
+        bx[index].set_title(f"p_T pull histogram, B={magnet_10.B} T")
         bx[index].set_xlabel("p_T_reco pull")
         bx[index].set_ylabel("Density")
         bx[index].legend()
+
+        # plot kde
+        cx[1].plot(x_ref, gaussian_kde(p_T_pulls)(x_ref), color=colors_B[index-7], label=f"B={magnet_10.B} T (μ={mean:.2f}, σ={std:.2f})")
+
+    # plot information cx
+    cx[0].axvline(0, color='grey', linewidth=0.8, alpha=0.5)
+    cx[0].set_xlim(-10, 5)
+    cx[0].set_xlabel("Pull")
+    cx[0].set_ylabel("Density")
+    cx[0].set_title("Pull vs. p_T_true (B=0.5 T)")
+    cx[0].legend(fontsize=7)
+
+    cx[1].axvline(0, color='grey', linewidth=0.8, alpha=0.5)
+    cx[1].set_xlim(-10, 5)
+    cx[1].set_xlabel("Pull")
+    cx[1].set_ylabel("Density")
+    cx[1].set_title("Pull vs. B (p_T_true=0.3 GeV)")
+    cx[1].legend(fontsize=7)
+    fig3.tight_layout()
     plt.show()
     
     
