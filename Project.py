@@ -229,6 +229,10 @@ def pull(p):
 
 ##### 4 Momentum Resolution #####
 
+# swap function
+def swap(lst, i, j):
+    lst[i], lst[j] = lst[j], lst[i]
+
 # pull function
 def pull(x_reco, x_gen, unc_x_reco):
     return (x_reco - x_gen)/unc_x_reco
@@ -319,6 +323,7 @@ def Momentum_Resolution():
     # plot infos
     plt.xlabel("z [mm]")
     plt.ylabel("x [mm]")
+    plt.title("Trajectory of a Particle and its Reconstruction")
     plt.legend()
     plt.show()
 
@@ -394,6 +399,16 @@ def Momentum_Resolution():
     #fig.tight_layout(pad=3.0)
     ax = ax.flatten()
 
+    # save statistics of diff/pull for all p_T and B
+    p_T_means_diff = []
+    p_T_stds_diff = []
+    B_means_diff = []
+    B_stds_diff = []
+    p_T_means_pull = []
+    p_T_stds_pull = []
+    B_means_pull = []
+    B_stds_pull = []
+
     # calculate differences between reco and true
     p_T_diff = np.array(p_Ts_reco) - p_T_true
 
@@ -406,6 +421,12 @@ def Momentum_Resolution():
     print(f"μ: {mean} [GeV]")
     print(f"σ: {std} [GeV]")
     print()
+
+    # save mean/std
+    p_T_means_diff.append(mean)
+    p_T_stds_diff.append(std)
+    B_means_diff.append(mean)
+    B_stds_diff.append(std)
 
     # plot histogram
     sns.histplot(p_T_diff, bins="auto", stat="density", kde=True, color="skyblue", ax=ax[0])
@@ -437,6 +458,12 @@ def Momentum_Resolution():
     print(f"σ: {std} [GeV]")
     print()
 
+    # save mean/std
+    p_T_means_pull.append(mean)
+    p_T_stds_pull.append(std)
+    B_means_pull.append(mean)
+    B_stds_pull.append(std)
+
     # plot histogram
     sns.histplot(p_T_pulls, bins="auto", stat="density", kde=True, color="skyblue", ax=bx[0])
     bx[0].axvline(mean, color="red", linestyle="dashed", label=f"μ: {mean:.4f}")
@@ -461,6 +488,12 @@ def Momentum_Resolution():
     cx[0].plot(x_ref, gaussian_kde(p_T_pulls)(x_ref), color=colors_pT[0], label=f"p_T=0.3 GeV (μ={mean:.2f}, σ={std:.2f})")
     cx[1].plot(x_ref, gaussian_kde(p_T_pulls)(x_ref), color=colors_pT[0], label=f"B=0.5 T (μ={mean:.2f}, σ={std:.2f})")
 
+    # plot mean/std as s function of p_T_true and B
+    fig4, dx = plt.subplots(2, 4, figsize=(20, 12))
+    dx = dx.flatten()
+    fig4.suptitle("Evolution of Diff/Pull Statistcs", fontsize=13, fontweight="bold")
+    p_T_x_range = [0.3,0.1,1,2,5,10,20]
+    B_x_range = [0.5,1.0,1.5,2.0]
 
     ### Repeat c)-e) for p_T_true in {0.1,1,2,5,10,20} GeV ###
     ### Estimate momentum resolution ###
@@ -559,6 +592,10 @@ def Momentum_Resolution():
         print(f"σ: {std} [GeV]")
         print()
 
+        # save mean/std
+        p_T_means_diff.append(mean)
+        p_T_stds_diff.append(std)
+
         # plot histogram
         sns.histplot(p_T_diff, bins="auto", stat="density", kde=True, color="skyblue", ax=ax[index])
         ax[index].axvline(mean, color="red", linestyle="dashed", label=f"μ: {mean:.4f}")
@@ -583,6 +620,10 @@ def Momentum_Resolution():
         print(f"μ: {mean} [GeV]")
         print(f"σ: {std} [GeV]")
         print()
+
+        # save mean/std
+        p_T_means_pull.append(mean)
+        p_T_stds_pull.append(std)
 
         # plot histogram
         sns.histplot(p_T_pulls, bins="auto", stat="density", kde=True, color="skyblue", ax=bx[index])
@@ -696,6 +737,10 @@ def Momentum_Resolution():
         print(f"σ: {std} [GeV]")
         print()
 
+        # save mean/std
+        B_means_diff.append(mean)
+        B_stds_diff.append(std)
+
         # plot histogram
         sns.histplot(p_T_diff, bins="auto", stat="density", kde=True, color="skyblue", ax=ax[index])
         ax[index].axvline(mean, color="red", linestyle="dashed", label=f"μ: {mean:.4f}")
@@ -720,6 +765,10 @@ def Momentum_Resolution():
         print(f"μ: {mean} [GeV]")
         print(f"σ: {std} [GeV]")
         print()
+
+        # save mean/std
+        B_means_pull.append(mean)
+        B_stds_pull.append(std)
 
         # plot histogram
         sns.histplot(p_T_pulls, bins="auto", stat="density", kde=True, color="skyblue", ax=bx[index])
@@ -748,10 +797,68 @@ def Momentum_Resolution():
     cx[1].set_ylabel("Density")
     cx[1].set_title("Pull vs. B (p_T_true=0.3 GeV)")
     cx[1].legend(fontsize=7)
+
+    
+    # swap p_T=0.1 and =0.3 because wrong order (first experiment is with 0.3)
+    swap(p_T_x_range, 0, 1)
+    swap(p_T_means_diff, 0, 1)
+    swap(p_T_means_pull, 0, 1)
+    swap(p_T_stds_diff, 0, 1)
+    swap(p_T_stds_pull, 0, 1)
+
+    # plot evolution pull/diff mean
+    minimum_rangey = np.min(p_T_means_pull)
+    maximum_rangey = np.max(p_T_means_diff)
+    dx[0].plot(p_T_x_range, p_T_means_diff, color="orange")
+    dx[0].set_xlabel("p_T [GeV]")
+    dx[0].set_ylabel("μ of Diff")
+    dx[0].set_title(f"Evolution μ(p_T) of Diff")
+    dx[0].set_ylim(np.min(p_T_means_diff)-1, np.max(p_T_means_diff)+1)
+    dx[1].plot(p_T_x_range, p_T_means_pull, color="orange")
+    dx[1].set_xlabel("p_T [GeV]")
+    dx[1].set_ylabel("μ of Pull")
+    dx[1].set_title(f"Evolution μ(p_T) of Pull")
+    dx[1].set_ylim(np.min(p_T_means_pull)-1, np.max(p_T_means_pull)+1)
+    dx[2].plot(B_x_range, B_means_diff, color="orange")
+    dx[2].set_xlabel("B [T]")
+    dx[2].set_ylabel("μ of Diff")
+    dx[2].set_title(f"Evolution μ(B) of Diff")
+    dx[2].set_ylim(np.min(B_means_diff)-1, np.max(B_means_diff)+1)
+    dx[3].plot(B_x_range, B_means_pull, color="orange")
+    dx[3].set_xlabel("B [T]")
+    dx[3].set_ylabel("μ of Pull")
+    dx[3].set_title(f"Evolution μ(B) of Pull")
+    dx[3].set_ylim(np.min(p_T_means_pull)-1, np.max(p_T_means_pull)+1)
+
+    # plot evolution pull/diff std
+    dx[4].plot(p_T_x_range, p_T_stds_diff, color="skyblue")
+    dx[4].set_xlabel("p_T [GeV]")
+    dx[4].set_ylabel("σ of Diff")
+    dx[4].set_title(f"Evolution σ(p_T) of Diff")
+    dx[4].set_ylim(np.min(p_T_stds_diff)-1, np.max(p_T_stds_diff)+1)
+    dx[5].plot(p_T_x_range, p_T_stds_pull, color="skyblue")
+    dx[5].set_xlabel("p_T [GeV]")
+    dx[5].set_ylabel("σ of Pull")
+    dx[5].set_title(f"Evolution σ(p_T) of Pull")
+    dx[5].set_ylim(np.min(p_T_stds_pull)-1, np.max(p_T_stds_pull)+1)
+    dx[6].plot(B_x_range, B_stds_diff, color="skyblue")
+    dx[6].set_xlabel("B [T]")
+    dx[6].set_ylabel("σ of Diff")
+    dx[6].set_title(f"Evolution σ(B) of Diff")
+    dx[6].set_ylim(np.min(B_stds_diff)-1, np.max(B_stds_diff)+1)
+    dx[7].plot(B_x_range, B_stds_pull, color="skyblue")
+    dx[7].set_xlabel("B [T]")
+    dx[7].set_ylabel("σ of Pull")
+    dx[7].set_title(f"Evolution σ(B) of Pull")
+    dx[7].set_ylim(np.min(p_T_stds_pull)-1, np.max(p_T_stds_pull)+1)
+
+    fig.tight_layout()
+    fig2.tight_layout()
     fig3.tight_layout()
+    fig4.tight_layout()
     plt.show()
-    
-    
+
+
     ### Calculate significance of pull-mean/pull-std difference from 0/1 ###
 
 
