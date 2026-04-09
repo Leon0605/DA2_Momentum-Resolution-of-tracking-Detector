@@ -947,7 +947,7 @@ def Momentum_Resolution():
     
     # calculate how many times null hypothesis of μ rejected
     print()
-    print("Rejection rate:")
+    print("Rejection rate (p < 0.0001%):")
     fails = sum(1 for p in p_values_t_test if p < 0.000001)
     print(f"H_0 (μ=1) rejected in {fails} of {n_datasets} times")
 
