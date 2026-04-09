@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from scipy import optimize
 from scipy.interpolate import CubicHermiteSpline
-from scipy.stats import gaussian_kde, norm
+from scipy.stats import gaussian_kde, norm, ttest_1samp, chi2
 from sklearn.linear_model import LinearRegression
 
 
@@ -446,12 +446,12 @@ def Momentum_Resolution():
     bx = bx.flatten()
 
     # calculate pull
-    p_T_pulls = pull(np.array(p_Ts_reco), p_T_true, p_Ts_unc)
+    p_T_pulls_0_3 = pull(np.array(p_Ts_reco), p_T_true, p_Ts_unc)
 
     # calculate histogram, mean, std
-    hist, bins = np.histogram(p_T_pulls, bins=50)
-    mean = np.mean(p_T_pulls)
-    std = np.std(p_T_pulls)
+    hist, bins = np.histogram(p_T_pulls_0_3, bins=50)
+    mean = np.mean(p_T_pulls_0_3)
+    std = np.std(p_T_pulls_0_3)
 
     print(f"--- p_T pull histogram statistics p_T_true={p_T_true} GeV, B = {magnet_10_0_5.B} T ---")
     print(f"μ: {mean} [GeV]")
@@ -465,7 +465,7 @@ def Momentum_Resolution():
     B_stds_pull.append(std)
 
     # plot histogram
-    sns.histplot(p_T_pulls, bins="auto", stat="density", kde=True, color="skyblue", ax=bx[0])
+    sns.histplot(p_T_pulls_0_3, bins="auto", stat="density", kde=True, color="skyblue", ax=bx[0])
     bx[0].axvline(mean, color="red", linestyle="dashed", label=f"μ: {mean:.4f}")
     bx[0].axvline(mean + std, color="orange", linestyle=":", label=f"σ: {std:.4f}")
     bx[0].axvline(mean - std, color="orange", linestyle=":")
@@ -485,8 +485,8 @@ def Momentum_Resolution():
     colors_B  = plt.cm.plasma(np.linspace(0.2, 1, 4))
 
     # calculate kde
-    cx[0].plot(x_ref, gaussian_kde(p_T_pulls)(x_ref), color=colors_pT[0], label=f"p_T=0.3 GeV (μ={mean:.2f}, σ={std:.2f})")
-    cx[1].plot(x_ref, gaussian_kde(p_T_pulls)(x_ref), color=colors_pT[0], label=f"B=0.5 T (μ={mean:.2f}, σ={std:.2f})")
+    cx[0].plot(x_ref, gaussian_kde(p_T_pulls_0_3)(x_ref), color=colors_pT[0], label=f"p_T=0.3 GeV (μ={mean:.2f}, σ={std:.2f})")
+    cx[1].plot(x_ref, gaussian_kde(p_T_pulls_0_3)(x_ref), color=colors_pT[0], label=f"B=0.5 T (μ={mean:.2f}, σ={std:.2f})")
 
     # plot mean/std as s function of p_T_true and B
     fig4, dx = plt.subplots(2, 4, figsize=(20, 12))
@@ -860,6 +860,121 @@ def Momentum_Resolution():
 
 
     ### Calculate significance of pull-mean/pull-std difference from 0/1 ###
+    ## Mean with t-test because std not known
+    ## Sigma with chi2 Variance test
+    # to estimate significance we generate the datapoits several times (100 times)
+    n_datasets = 100
+    
+    # store ulls, t-test pe run and p-alues per run
+    pulls = []
+    t_tests = []
+    p_values_t_test = []
+    p_values_chi2 = []
+    for number in range(n_datasets):
+        print(f"Experiment {number+1}/{n_datasets}")
+        particles = [particle(p_T_true) for i in range(1000)] 
+
+        # extrapolate trajectories
+        for p in particles:
+            # calculate change because of magnet
+            M_z, M_x = magnet_10_0_5.change(p)
+
+            for z in z_detectors[:zbegin_index+1]:
+                cellsHit(p, z) # calculate hits before magnets
+
+            for z in z_detectors[zbegin_index+1:]:
+                cellsHit(p, z, zMagnet=magnet_10_0_5.z_end) # calculate hits after magnet
+
+        #generate hitpoints for all 1000 particles and reconstruct p_T
+        hitpoints = []
+        hitpoints_unc = []
+        for p in particles:
+            hit , unc = generatePoints(p)
+            hitpoints.append(hit)
+            hitpoints_unc.append(unc)
+
+        p_Ts_reco = []
+        p_Ts_unc = []
+        x_line_reco_before_magnet = []
+        x_line_reco_after_magnet = []
+        true_false= []
+        for i, p in enumerate(particles):
+            # calculate linear regression before magnet
+            coeffs_before, cov_before = optimize.curve_fit(line, z_detectors[:zbegin_index+1], hitpoints[i][:zbegin_index+1], sigma=hitpoints_unc[i][:zbegin_index+1], absolute_sigma=True)
+            p.s0reco, p.x0reco = coeffs_before
+            p.s0recoUncert, p.x0recoUncert = np.sqrt(np.diag(cov_before))
+
+            # calculate linear regression after magnet
+            coeffs_after, cov_after = optimize.curve_fit(line, z_detectors[zbegin_index+1:], hitpoints[i][zbegin_index+1:], sigma=hitpoints_unc[i][zbegin_index+1:], absolute_sigma=True)
+            p.sMagnetreco, intercept_after_reco = coeffs_after
+            p.xMagnetreco = line(magnet_10_0_5.z_end, p.sMagnetreco, intercept_after_reco)
+            unc_slope, unc_intercept = np.sqrt(np.diag(cov_after))
+            p.sMagnetrecoUncert = unc_slope
+            p.xMagnetrecoUncert = np.sqrt((magnet_10_0_5.z_end * unc_slope)**2 + unc_intercept**2)
+
+            # calculate line before magnet
+            x_line_reco_before = line(z_detectors[:zbegin_index+1], p.s0reco, p.x0reco)
+            x_line_reco_before_magnet.append(x_line_reco_before)
+
+            # calculate line after magnet
+            x_line_reco_after = line(z_detectors[zbegin_index+1:], p.sMagnetreco, p.xMagnetreco - p.sMagnetreco * magnet_10_0_5.z_end)
+            x_line_reco_after_magnet.append(x_line_reco_after)
+
+            # calculate reconstruction of momentum and the uncertainty
+            p_T_reco, p_T_reco_unc = magnet_10_0_5.reconstruct_momentum(p.q, p.s0reco, p.sMagnetreco, p.s0recoUncert, p.sMagnetrecoUncert)
+            p_Ts_reco.append(p_T_reco)
+            p_Ts_unc.append(p_T_reco_unc)
+
+            true_false.append(np.any(hitpoints_unc[0] == 0))
+
+        # calculate pull
+        p_T_pulls = pull(np.array(p_Ts_reco), p_T_true, p_Ts_unc)
+        pulls.append(p_T_pulls)
+
+        ## Mean with t-test because std not known
+        t_test, p_val = ttest_1samp(p_T_pulls, popmean=0)
+        t_tests.append(t_test)
+        p_values_t_test.append(p_val)
+
+        ## Std for Chi2 test
+        s = np.std(p_T_pulls, ddof=1)
+        n = len(p_T_pulls)
+        chi2_stat = (n - 1) * s**2 / 1.0**2
+
+        # two-tailed
+        p_val = 2 * min(chi2.cdf(chi2_stat, df=n-1), chi2.sf(chi2_stat, df=n-1))
+        p_values_chi2.append(p_val)
+    
+    # calculate how many times null hypothesis of μ rejected
+    print()
+    print("Rejection rate:")
+    fails = sum(1 for p in p_values_t_test if p < 0.000001)
+    print(f"H_0 (μ=1) rejected in {fails} of {n_datasets} times")
+
+    # calculate how many times null hypothesis of sigma rejected
+    fails = sum(1 for p in p_values_chi2 if p < 0.000001)
+    print(f"H_0 (σ=1) rejected in {fails} of {n_datasets} times")
+    print()
+
+    ## calculate t-test and chi**2 for 1 dataset (first one in c)
+    #t-test
+    t_test, p_val_t = ttest_1samp(p_T_pulls_0_3, popmean=0)
+
+    #Chi2 test
+    s = np.std(p_T_pulls_0_3, ddof=1)
+    n = len(p_T_pulls_0_3)
+    chi2_stat = (n - 1) * s**2 / 1.0**2
+
+    # two-tailed
+    p_val_chi = 2 * min(chi2.cdf(chi2_stat, df=n-1), chi2.sf(chi2_stat, df=n-1))
+
+    # calculate how many times null hypothesis of μ rejected
+    print("P_values of First experiment")
+    print(f"H_0 (μ=1): p = {p_val_t}")
+
+    # calculate how many times null hypothesis of sigma rejected
+    print(f"H_0 (σ=1): p = {p_val_chi}")
+    print()
 
 
 # run Part 4 Momentum Resolution
