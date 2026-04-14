@@ -870,6 +870,7 @@ def Momentum_Resolution():
     t_tests = []
     p_values_t_test = []
     p_values_chi2 = []
+
     for number in range(n_datasets):
         print(f"Experiment {number+1}/{n_datasets}")
         particles = [particle(p_T_true) for i in range(1000)] 
@@ -949,7 +950,7 @@ def Momentum_Resolution():
     print()
     print("Rejection rate (p < 0.0001%):")
     fails = sum(1 for p in p_values_t_test if p < 0.000001)
-    print(f"H_0 (μ=1) rejected in {fails} of {n_datasets} times")
+    print(f"H_0 (μ=0) rejected in {fails} of {n_datasets} times")
 
     # calculate how many times null hypothesis of sigma rejected
     fails = sum(1 for p in p_values_chi2 if p < 0.000001)
@@ -970,12 +971,11 @@ def Momentum_Resolution():
 
     # calculate how many times null hypothesis of μ rejected
     print("P_values of First experiment")
-    print(f"H_0 (μ=1): p = {p_val_t}")
+    print(f"H_0 (μ=0): p = {p_val_t}")
 
     # calculate how many times null hypothesis of sigma rejected
     print(f"H_0 (σ=1): p = {p_val_chi}")
     print()
-
 
 # run Part 4 Momentum Resolution
 Momentum_Resolution()
