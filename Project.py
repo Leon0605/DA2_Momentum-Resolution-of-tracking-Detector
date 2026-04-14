@@ -592,7 +592,7 @@ def Momentum_Resolution():
         p_T_stds_diff.append(std)
 
         # plot histogram
-        #sns.histplot(p_T_diff, bins="auto", stat="density", kde=True, color="skyblue", ax=ax[index])
+        sns.histplot(p_T_diff, bins="auto", stat="density", kde=True, color="skyblue", ax=ax[index])
         ax[index].axvline(mean, color="red", linestyle="dashed", label=f"μ: {mean:.4f}")
         ax[index].axvline(mean + std, color="orange", linestyle=":", label=f"σ: {std:.4f}")
         ax[index].axvline(mean - std, color="orange", linestyle=":")
@@ -938,8 +938,8 @@ def Momentum_Resolution():
         pulls0 = np.array(pulls0)
         pullx0 = np.array(pullx0)
 
-        pulls0SD= np.std(pulls0)
-        pullx0SD = np.std(pullx0)
+        pulls0SD= np.std(pulls0, ddof=1)
+        pullx0SD = np.std(pullx0, ddof=1)
         # calculate pull
         p_T_pulls = pull(np.array(p_Ts_reco), p_T_true, p_Ts_unc)
         pulls.append(p_T_pulls)
@@ -969,23 +969,23 @@ def Momentum_Resolution():
         n = len(pullx0)
         chi2_stat = (n-1) * pullx0SD ** 2
         p_val = 2 * min(chi2.cdf(chi2_stat, df=n-1), chi2.sf(chi2_stat, df=n-1))
-        p_values_chi2_tracking_s0.append(p_val)
+        p_values_chi2_tracking_x0.append(p_val)
     # calculate how many times null hypothesis of μ rejected
     print()
     print("Rejection rate (p < 0.0001%):")
     fails = sum(1 for p in p_values_t_test_momentum if p < 0.000001)
-    print(f"H_0 (μ=1) rejected in {fails} of {n_datasets} times")
+    print(f"H_0 (μ=0, p_T) rejected in {fails} of {n_datasets} times")
     fails = sum(1 for p in p_values_t_test_tracking_s0 if p < 0.000001)
-    print(f"H_0 (μ=1) rejected in {fails} of {n_datasets} times")
+    print(f"H_0 (μ=0, s0) rejected in {fails} of {n_datasets} times")
     fails = sum(1 for p in p_values_t_test_tracking_x0 if p < 0.000001)
-    print(f"H_0 (μ=1) rejected in {fails} of {n_datasets} times")
+    print(f"H_0 (μ=0, x0) rejected in {fails} of {n_datasets} times")
     # calculate how many times null hypothesis of sigma rejected
     fails = sum(1 for p in p_values_chi2_momentum if p < 0.000001)
-    print(f"H_0 (σ=1) rejected in {fails} of {n_datasets} times")
+    print(f"H_0 (σ=1, p_T) rejected in {fails} of {n_datasets} times")
     fails = sum(1 for p in p_values_chi2_tracking_s0 if p < 0.000001)
-    print(f"H_0 (σ=1) rejected in {fails} of {n_datasets} times")
+    print(f"H_0 (σ=1, s0) rejected in {fails} of {n_datasets} times")
     fails = sum(1 for p in p_values_chi2_tracking_x0 if p < 0.000001)
-    print(f"H_0 (σ=1) rejected in {fails} of {n_datasets} times")
+    print(f"H_0 (σ=1, x0) rejected in {fails} of {n_datasets} times")
     print()
 
     ## calculate t-test and chi**2 for 1 dataset (first one in c)
