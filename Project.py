@@ -131,11 +131,6 @@ def cellsHit(p, z, zMagnet=None):
         p.layers.append(np.floor(x/cellWidth)) #calculate and store cell index
 
 
-def generatePoints(p, n):
-    genX = []
-    for i in range(0,n):
-        genX.append(np.random.uniform(p.layers[i]-1*cellWidth, (p.layers[i])*cellWidth)) #generate data from hit cell index by drawing from cell interval as uniform distribution
-    return np.array(genX)
 
 
 def generatePoints(p):
@@ -161,7 +156,7 @@ def run(p1):
     coeffs, cov = optimize.curve_fit(line, np.array(Z), X, sigma=uncertainties, absolute_sigma=True)
     p1.s0reco, p1.x0reco = coeffs
     p1.s0recoUncert, p1.x0recoUncert = np.sqrt(np.diag(cov))
-    pulls0, pullx0 = pull(p1)
+    pulls0, pullx0 = pulls0x0(p1)
     #plot_trajectories(p1, X, Z, uncertainties)
     return pulls0, pullx0
 
@@ -209,10 +204,10 @@ def simulation():
 
     print(pulls0Mean, pulls0SD, pullx0Mean, pullx0SD)
 
-    plot_histograms(pulls0, "Pull S0")
-    plot_histograms(pullx0, "Pull X0")
-    plot_histograms(s0Residuals, "S0 Residuals")
-    plot_histograms(x0Residuals, "X0 Residuals")
+    #plot_histograms(pulls0, "Pull S0")
+    #plot_histograms(pullx0, "Pull X0")
+    #plot_histograms(s0Residuals, "S0 Residuals")
+    #plot_histograms(x0Residuals, "X0 Residuals")
 
 def plot_histograms(residuals, title):
     plt.figure()
@@ -220,7 +215,7 @@ def plot_histograms(residuals, title):
     plt.title(title)
     plt.show()
 
-def pull(p):
+def pulls0x0(p):
     pulls0 = (p.s0reco - p.s0) / p.s0recoUncert
     pullx0 = (p.x0reco - p.x0) / p.x0recoUncert
     return pulls0, pullx0
@@ -597,7 +592,7 @@ def Momentum_Resolution():
         p_T_stds_diff.append(std)
 
         # plot histogram
-        sns.histplot(p_T_diff, bins="auto", stat="density", kde=True, color="skyblue", ax=ax[index])
+        #sns.histplot(p_T_diff, bins="auto", stat="density", kde=True, color="skyblue", ax=ax[index])
         ax[index].axvline(mean, color="red", linestyle="dashed", label=f"μ: {mean:.4f}")
         ax[index].axvline(mean + std, color="orange", linestyle=":", label=f"σ: {std:.4f}")
         ax[index].axvline(mean - std, color="orange", linestyle=":")
@@ -868,8 +863,14 @@ def Momentum_Resolution():
     # store ulls, t-test pe run and p-alues per run
     pulls = []
     t_tests = []
-    p_values_t_test = []
-    p_values_chi2 = []
+    
+    
+    p_values_t_test_momentum = []
+    p_values_t_test_tracking_s0 = []
+    p_values_t_test_tracking_x0 = []
+    p_values_chi2_momentum = []
+    p_values_chi2_tracking_s0 = []
+    p_values_chi2_tracking_x0 = []
     for number in range(n_datasets):
         print(f"Experiment {number+1}/{n_datasets}")
         particles = [particle(p_T_true) for i in range(1000)] 
@@ -898,11 +899,18 @@ def Momentum_Resolution():
         x_line_reco_before_magnet = []
         x_line_reco_after_magnet = []
         true_false= []
+        pulls0 = []
+        pullx0 = []
         for i, p in enumerate(particles):
             # calculate linear regression before magnet
             coeffs_before, cov_before = optimize.curve_fit(line, z_detectors[:zbegin_index+1], hitpoints[i][:zbegin_index+1], sigma=hitpoints_unc[i][:zbegin_index+1], absolute_sigma=True)
             p.s0reco, p.x0reco = coeffs_before
             p.s0recoUncert, p.x0recoUncert = np.sqrt(np.diag(cov_before))
+
+            ps0, px0 = pulls0x0(p)
+            pulls0.append(ps0)
+            pullx0.append(px0)
+
 
             # calculate linear regression after magnet
             coeffs_after, cov_after = optimize.curve_fit(line, z_detectors[zbegin_index+1:], hitpoints[i][zbegin_index+1:], sigma=hitpoints_unc[i][zbegin_index+1:], absolute_sigma=True)
@@ -912,21 +920,26 @@ def Momentum_Resolution():
             p.sMagnetrecoUncert = unc_slope
             p.xMagnetrecoUncert = np.sqrt((magnet_10_0_5.z_end * unc_slope)**2 + unc_intercept**2)
 
-            # calculate line before magnet
+                # calculate line before magnet
             x_line_reco_before = line(z_detectors[:zbegin_index+1], p.s0reco, p.x0reco)
             x_line_reco_before_magnet.append(x_line_reco_before)
 
-            # calculate line after magnet
+                # calculate line after magnet
             x_line_reco_after = line(z_detectors[zbegin_index+1:], p.sMagnetreco, p.xMagnetreco - p.sMagnetreco * magnet_10_0_5.z_end)
             x_line_reco_after_magnet.append(x_line_reco_after)
 
-            # calculate reconstruction of momentum and the uncertainty
+                # calculate reconstruction of momentum and the uncertainty
             p_T_reco, p_T_reco_unc = magnet_10_0_5.reconstruct_momentum(p.q, p.s0reco, p.sMagnetreco, p.s0recoUncert, p.sMagnetrecoUncert)
             p_Ts_reco.append(p_T_reco)
             p_Ts_unc.append(p_T_reco_unc)
 
             true_false.append(np.any(hitpoints_unc[0] == 0))
 
+        pulls0 = np.array(pulls0)
+        pullx0 = np.array(pullx0)
+
+        pulls0SD= np.std(pulls0)
+        pullx0SD = np.std(pullx0)
         # calculate pull
         p_T_pulls = pull(np.array(p_Ts_reco), p_T_true, p_Ts_unc)
         pulls.append(p_T_pulls)
@@ -934,8 +947,11 @@ def Momentum_Resolution():
         ## Mean with t-test because std not known
         t_test, p_val = ttest_1samp(p_T_pulls, popmean=0)
         t_tests.append(t_test)
-        p_values_t_test.append(p_val)
-
+        p_values_t_test_momentum.append(p_val)
+        t_test, p_val = ttest_1samp(pulls0, popmean=0)
+        p_values_t_test_tracking_s0.append(p_val)
+        t_test, p_val = ttest_1samp(pullx0, popmean=0)
+        p_values_t_test_tracking_x0.append(p_val)
         ## Std for Chi2 test
         s = np.std(p_T_pulls, ddof=1)
         n = len(p_T_pulls)
@@ -943,16 +959,32 @@ def Momentum_Resolution():
 
         # two-tailed
         p_val = 2 * min(chi2.cdf(chi2_stat, df=n-1), chi2.sf(chi2_stat, df=n-1))
-        p_values_chi2.append(p_val)
-    
+        p_values_chi2_momentum.append(p_val)
+
+        n = len(pulls0)
+        chi2_stat = (n-1) * pulls0SD ** 2
+        p_val = 2 * min(chi2.cdf(chi2_stat, df=n-1), chi2.sf(chi2_stat, df=n-1))
+        p_values_chi2_tracking_s0.append(p_val)
+
+        n = len(pullx0)
+        chi2_stat = (n-1) * pullx0SD ** 2
+        p_val = 2 * min(chi2.cdf(chi2_stat, df=n-1), chi2.sf(chi2_stat, df=n-1))
+        p_values_chi2_tracking_s0.append(p_val)
     # calculate how many times null hypothesis of μ rejected
     print()
     print("Rejection rate (p < 0.0001%):")
-    fails = sum(1 for p in p_values_t_test if p < 0.000001)
+    fails = sum(1 for p in p_values_t_test_momentum if p < 0.000001)
     print(f"H_0 (μ=1) rejected in {fails} of {n_datasets} times")
-
+    fails = sum(1 for p in p_values_t_test_tracking_s0 if p < 0.000001)
+    print(f"H_0 (μ=1) rejected in {fails} of {n_datasets} times")
+    fails = sum(1 for p in p_values_t_test_tracking_x0 if p < 0.000001)
+    print(f"H_0 (μ=1) rejected in {fails} of {n_datasets} times")
     # calculate how many times null hypothesis of sigma rejected
-    fails = sum(1 for p in p_values_chi2 if p < 0.000001)
+    fails = sum(1 for p in p_values_chi2_momentum if p < 0.000001)
+    print(f"H_0 (σ=1) rejected in {fails} of {n_datasets} times")
+    fails = sum(1 for p in p_values_chi2_tracking_s0 if p < 0.000001)
+    print(f"H_0 (σ=1) rejected in {fails} of {n_datasets} times")
+    fails = sum(1 for p in p_values_chi2_tracking_x0 if p < 0.000001)
     print(f"H_0 (σ=1) rejected in {fails} of {n_datasets} times")
     print()
 
