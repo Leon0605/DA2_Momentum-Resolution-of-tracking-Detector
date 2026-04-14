@@ -1,0 +1,11 @@
+Rejection rate (p < 0.0001%):
+H_0 (μ=0, p_T) rejected in 36 of 100 times
+H_0 (μ=0, s0) rejected in 0 of 100 times
+H_0 (μ=0, x0) rejected in 0 of 100 times
+H_0 (σ=1, p_T) rejected in 1 of 100 times
+H_0 (σ=1, s0) rejected in 32 of 100 times
+H_0 (σ=1, x0) rejected in 0 of 100 times
+
+P_values of First experiment
+H_0 (μ=0): p = 0.00021163783862078992
+H_0 (σ=1): p = 0.10351339244138769
