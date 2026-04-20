@@ -140,7 +140,9 @@ def generatePoints_middle(p):
 
 def generatePoints_random(p):
     genX = []
+    uncertainties = []
     for l in p.layers:
+        uncertainties.append(cellWidth/np.sqrt(12))
         if l >= 0:
             genX.append(np.random.uniform((l-1)*cellWidth, l*cellWidth))
         else:
@@ -157,14 +159,14 @@ def run(p1):
         z = (i+1)*dZ
         Z.append(z)
         cellsHit(p1, z)
-    #X, uncertainties = generatePoints_middle(p1)
-    X = generatePoints_random(p1)
+    X, uncertainties = generatePoints_middle(p1)
+    #X = generatePoints_random(p1)
     
     #for points generated with middle point method
-    #coeffs, cov = optimize.curve_fit(line, np.array(Z), X, sigma=uncertainties, absolute_sigma=True)
+    coeffs, cov = optimize.curve_fit(line, np.array(Z), X, sigma=uncertainties, absolute_sigma=True)
 
     #for points generated with random drawing from distribution
-    coeffs, cov = optimize.curve_fit(line, np.array(Z), X)
+    #coeffs, cov = optimize.curve_fit(line, np.array(Z), X)
 
     p1.s0reco, p1.x0reco = coeffs
     p1.s0recoUncert, p1.x0recoUncert = np.sqrt(np.diag(cov))
@@ -273,27 +275,28 @@ def Momentum_Resolution():
     curve_z_i, curve_interpolation_warmup = magnet_10_0_5.change_interpolation_1(particle_warmup.xactual[zbegin_index], particle_warmup.s0, p_T_true, particle_warmup.q)
     
     # calculate hitposition and uncertainty with middle point method
-    #hits_warmup, unc_warmup = generatePoints_middle(particle_warmup)
+    hits_warmup, unc_warmup = generatePoints_middle(particle_warmup)
 
     #with random sampling method
-    hits_warmup = generatePoints_random(particle_warmup)
+    #hits_warmup = generatePoints_random(particle_warmup)
 
     ## b) Fit straight lines and calculate reco p_T ##
     # calculate linear regression before magnet 
     # fitting with middle point method
-    #coeffs_before, cov_before = optimize.curve_fit(line, z_detectors[:zbegin_index+1], hits_warmup[:zbegin_index+1], sigma=unc_warmup[:zbegin_index+1], absolute_sigma=True)
+    coeffs_before, cov_before = optimize.curve_fit(line, z_detectors[:zbegin_index+1], hits_warmup[:zbegin_index+1], sigma=unc_warmup[:zbegin_index+1], absolute_sigma=True)
     
     #fitting with random sampling method
-    coeffs_before, cov_before = optimize.curve_fit(line, z_detectors[:zbegin_index+1], hits_warmup[:zbegin_index+1])
+    #coeffs_before, cov_before = optimize.curve_fit(line, z_detectors[:zbegin_index+1], hits_warmup[:zbegin_index+1])
+    
     particle_warmup.s0reco, particle_warmup.x0reco = coeffs_before
     particle_warmup.s0recoUncert, particle_warmup.x0recoUncert = np.sqrt(np.diag(cov_before))
 
     # calculate linear regression after magnet
     # with middle point method
-    #coeffs_after, cov_after = optimize.curve_fit(line, z_detectors[zbegin_index+1:], hits_warmup[zbegin_index+1:], sigma=unc_warmup[zbegin_index+1:], absolute_sigma=True)
+    coeffs_after, cov_after = optimize.curve_fit(line, z_detectors[zbegin_index+1:], hits_warmup[zbegin_index+1:], sigma=unc_warmup[zbegin_index+1:], absolute_sigma=True)
 
     #with random sampling method
-    coeffs_after, cov_after = optimize.curve_fit(line, z_detectors[zbegin_index+1:], hits_warmup[zbegin_index+1:])
+    #coeffs_after, cov_after = optimize.curve_fit(line, z_detectors[zbegin_index+1:], hits_warmup[zbegin_index+1:])
 
     particle_warmup.sMagnetreco, intercept_after_reco = coeffs_after
     particle_warmup.xMagnetreco = line(magnet_10_0_5.z_end, particle_warmup.sMagnetreco, intercept_after_reco)
@@ -368,11 +371,11 @@ def Momentum_Resolution():
     hitpoints_unc = []
     for p in particles:
         # middle point method
-        #hit , unc = generatePoints_middle(p)
-        #hitpoints_unc.append(unc)
+        hit , unc = generatePoints_middle(p)
+        hitpoints_unc.append(unc)
 
         # random sampling method
-        hit = generatePoints_random(p)
+        #hit = generatePoints_random(p)
         hitpoints.append(hit)
 
     
@@ -384,19 +387,19 @@ def Momentum_Resolution():
     for i, p in enumerate(particles):
         # calculate linear regression before magnet
         # middle point method
-        #coeffs_before, cov_before = optimize.curve_fit(line, z_detectors[:zbegin_index+1], hitpoints[i][:zbegin_index+1], sigma=hitpoints_unc[i][:zbegin_index+1], absolute_sigma=True)
+        coeffs_before, cov_before = optimize.curve_fit(line, z_detectors[:zbegin_index+1], hitpoints[i][:zbegin_index+1], sigma=hitpoints_unc[i][:zbegin_index+1], absolute_sigma=True)
         
         #random sampling method
-        coeffs_before, cov_before = optimize.curve_fit(line, z_detectors[:zbegin_index+1], hitpoints[i][:zbegin_index+1])
+        #coeffs_before, cov_before = optimize.curve_fit(line, z_detectors[:zbegin_index+1], hitpoints[i][:zbegin_index+1])
         p.s0reco, p.x0reco = coeffs_before
         p.s0recoUncert, p.x0recoUncert = np.sqrt(np.diag(cov_before))
 
         # calculate linear regression after magnet
         # with middle point method
-        #coeffs_after, cov_after = optimize.curve_fit(line, z_detectors[zbegin_index+1:], hitpoints[i][zbegin_index+1:], sigma=hitpoints_unc[i][zbegin_index+1:], absolute_sigma=True)
+        coeffs_after, cov_after = optimize.curve_fit(line, z_detectors[zbegin_index+1:], hitpoints[i][zbegin_index+1:], sigma=hitpoints_unc[i][zbegin_index+1:], absolute_sigma=True)
         
         # with random sampling method
-        coeffs_after, cov_after = optimize.curve_fit(line, z_detectors[zbegin_index+1:], hitpoints[i][zbegin_index+1:])
+        #coeffs_after, cov_after = optimize.curve_fit(line, z_detectors[zbegin_index+1:], hitpoints[i][zbegin_index+1:])
         
         p.sMagnetreco, intercept_after_reco = coeffs_after
         p.xMagnetreco = line(magnet_10_0_5.z_end, p.sMagnetreco, intercept_after_reco)
@@ -554,9 +557,10 @@ def Momentum_Resolution():
         hitpoints_unc = []
         for p in particles:
             #middle point method
-            #hit , unc = generatePoints_middle(p)
-            #hitpoints_unc.append(unc)
-            hit = generatePoints_random(p)
+            hit , unc = generatePoints_middle(p)
+            hitpoints_unc.append(unc)
+            #hit = generatePoints_random(p)
+            
             hitpoints.append(hit)
 
         p_Ts_reco = []
@@ -567,19 +571,20 @@ def Momentum_Resolution():
         for i, p in enumerate(particles):
             # calculate linear regression before magnet
             # with middle point
-            #coeffs_before, cov_before = optimize.curve_fit(line, z_detectors[:zbegin_index+1], hitpoints[i][:zbegin_index+1], sigma=hitpoints_unc[i][:zbegin_index+1], absolute_sigma=True)
+            coeffs_before, cov_before = optimize.curve_fit(line, z_detectors[:zbegin_index+1], hitpoints[i][:zbegin_index+1], sigma=hitpoints_unc[i][:zbegin_index+1], absolute_sigma=True)
             
             # with random sampling
-            coeffs_before, cov_before = optimize.curve_fit(line, z_detectors[:zbegin_index+1], hitpoints[i][:zbegin_index+1])
+            #coeffs_before, cov_before = optimize.curve_fit(line, z_detectors[:zbegin_index+1], hitpoints[i][:zbegin_index+1])
+            
             p.s0reco, p.x0reco = coeffs_before
             p.s0recoUncert, p.x0recoUncert = np.sqrt(np.diag(cov_before))
 
             # calculate linear regression after magnet
             # with middle point
-            #coeffs_after, cov_after = optimize.curve_fit(line, z_detectors[zbegin_index+1:], hitpoints[i][zbegin_index+1:], sigma=hitpoints_unc[i][zbegin_index+1:], absolute_sigma=True)
+            coeffs_after, cov_after = optimize.curve_fit(line, z_detectors[zbegin_index+1:], hitpoints[i][zbegin_index+1:], sigma=hitpoints_unc[i][zbegin_index+1:], absolute_sigma=True)
             
             #with random sampling
-            coeffs_after, cov_after = optimize.curve_fit(line, z_detectors[zbegin_index+1:], hitpoints[i][zbegin_index+1:])
+            #coeffs_after, cov_after = optimize.curve_fit(line, z_detectors[zbegin_index+1:], hitpoints[i][zbegin_index+1:])
             
             p.sMagnetreco, intercept_after_reco = coeffs_after
             p.xMagnetreco = line(magnet_10_0_5.z_end, p.sMagnetreco, intercept_after_reco)
@@ -710,11 +715,12 @@ def Momentum_Resolution():
         hitpoints_unc = []
         for p in particles:
             #middle point method
-            #hit , unc = generatePoints_middle(p)
-            #hitpoints_unc.append(unc)
+            hit , unc = generatePoints_middle(p)
+            hitpoints_unc.append(unc)
 
             #random sampling method
-            hit = generatePoints_random(p)
+            #hit= generatePoints_random(p)
+            
             hitpoints.append(hit)
 
         p_Ts_reco = []
@@ -725,19 +731,19 @@ def Momentum_Resolution():
         for i, p in enumerate(particles):
             # calculate linear regression before magnet
             #middle point method
-            #coeffs_before, cov_before = optimize.curve_fit(line, z_detectors[:zbegin_index+1], hitpoints[i][:zbegin_index+1], sigma=hitpoints_unc[i][:zbegin_index+1], absolute_sigma=True)
+            coeffs_before, cov_before = optimize.curve_fit(line, z_detectors[:zbegin_index+1], hitpoints[i][:zbegin_index+1], sigma=hitpoints_unc[i][:zbegin_index+1], absolute_sigma=True)
             
             #random sampling method
-            coeffs_before, cov_before = optimize.curve_fit(line, z_detectors[:zbegin_index+1], hitpoints[i][:zbegin_index+1])
+            #coeffs_before, cov_before = optimize.curve_fit(line, z_detectors[:zbegin_index+1], hitpoints[i][:zbegin_index+1])
             p.s0reco, p.x0reco = coeffs_before
             p.s0recoUncert, p.x0recoUncert = np.sqrt(np.diag(cov_before))
 
             # calculate linear regression after magnet
             # middle point method
-            #coeffs_after, cov_after = optimize.curve_fit(line, z_detectors[zbegin_index+1:], hitpoints[i][zbegin_index+1:], sigma=hitpoints_unc[i][zbegin_index+1:], absolute_sigma=True)
+            coeffs_after, cov_after = optimize.curve_fit(line, z_detectors[zbegin_index+1:], hitpoints[i][zbegin_index+1:], sigma=hitpoints_unc[i][zbegin_index+1:], absolute_sigma=True)
             
             #random sampling method
-            coeffs_after, cov_after = optimize.curve_fit(line, z_detectors[zbegin_index+1:], hitpoints[i][zbegin_index+1:])
+            #coeffs_after, cov_after = optimize.curve_fit(line, z_detectors[zbegin_index+1:], hitpoints[i][zbegin_index+1:])
             
             p.sMagnetreco, intercept_after_reco = coeffs_after
             p.xMagnetreco = line(magnet_10.z_end, p.sMagnetreco, intercept_after_reco)
@@ -952,11 +958,12 @@ def Momentum_Resolution():
         hitpoints_unc = []
         for p in particles:
             #middle point method
-            #hit , unc = generatePoints_middle(p)
-            #hitpoints_unc.append(unc)
+            hit , unc = generatePoints_middle(p)
+            hitpoints_unc.append(unc)
 
             #random sampling method
-            hit = generatePoints_random(p)
+            #hit = generatePoints_random(p)
+            
             hitpoints.append(hit)
             
 
@@ -970,10 +977,11 @@ def Momentum_Resolution():
         for i, p in enumerate(particles):
             # calculate linear regression before magnet
             # middle point method
-            #coeffs_before, cov_before = optimize.curve_fit(line, z_detectors[:zbegin_index+1], hitpoints[i][:zbegin_index+1], sigma=hitpoints_unc[i][:zbegin_index+1], absolute_sigma=True)
+            coeffs_before, cov_before = optimize.curve_fit(line, z_detectors[:zbegin_index+1], hitpoints[i][:zbegin_index+1], sigma=hitpoints_unc[i][:zbegin_index+1], absolute_sigma=True)
             
             #random sampling method
-            coeffs_before, cov_before = optimize.curve_fit(line, z_detectors[:zbegin_index+1], hitpoints[i][:zbegin_index+1])
+            #coeffs_before, cov_before = optimize.curve_fit(line, z_detectors[:zbegin_index+1], hitpoints[i][:zbegin_index+1])
+            
             p.s0reco, p.x0reco = coeffs_before
             p.s0recoUncert, p.x0recoUncert = np.sqrt(np.diag(cov_before))
 
@@ -984,10 +992,10 @@ def Momentum_Resolution():
 
             # calculate linear regression after magnet
             #middle point method
-            #coeffs_after, cov_after = optimize.curve_fit(line, z_detectors[zbegin_index+1:], hitpoints[i][zbegin_index+1:], sigma=hitpoints_unc[i][zbegin_index+1:], absolute_sigma=True)
-            
+            coeffs_after, cov_after = optimize.curve_fit(line, z_detectors[zbegin_index+1:], hitpoints[i][zbegin_index+1:], sigma=hitpoints_unc[i][zbegin_index+1:], absolute_sigma=True)
             #random sampling method
-            coeffs_after, cov_after= optimize.curve_fit(line, z_detectors[zbegin_index+1:], hitpoints[i][zbegin_index+1:])
+            #coeffs_after, cov_after= optimize.curve_fit(line, z_detectors[zbegin_index+1:], hitpoints[i][zbegin_index+1:])
+            
             p.sMagnetreco, intercept_after_reco = coeffs_after
             p.xMagnetreco = line(magnet_10_0_5.z_end, p.sMagnetreco, intercept_after_reco)
             unc_slope, unc_intercept = np.sqrt(np.diag(cov_after))
@@ -1012,10 +1020,12 @@ def Momentum_Resolution():
         pulls0 = np.array(pulls0)
         pullx0 = np.array(pullx0)
 
-        pulls0SD= np.std(pulls0)
-        pullx0SD = np.std(pullx0)
+        print(f"pulls0 std: {np.std(pulls0, ddof=1)}, mean: {np.mean(pulls0)}")
+        print(f"pullx0 std: {np.std(pullx0, ddof=1)}, mean: {np.mean(pullx0)}")
+
         # calculate pull
         p_T_pulls = pull(np.array(p_Ts_reco), p_T_true, p_Ts_unc)
+        print(f"pull std: {np.std(p_T_pulls)}, mean: {np.mean(p_T_pulls)}")
         pulls.append(p_T_pulls)
 
         ## Mean with t-test because std not known
@@ -1036,12 +1046,12 @@ def Momentum_Resolution():
         p_values_chi2_momentum.append(p_val)
 
         n = len(pulls0)
-        chi2_stat = (n-1) * pulls0SD ** 2
+        chi2_stat = (n-1) * np.std(pulls0, ddof=1)**2
         p_val = 2 * min(chi2.cdf(chi2_stat, df=n-1), chi2.sf(chi2_stat, df=n-1))
         p_values_chi2_tracking_s0.append(p_val)
 
         n = len(pullx0)
-        chi2_stat = (n-1) * pullx0SD ** 2
+        chi2_stat = (n-1) * np.std(pullx0, ddof=1)**2
         p_val = 2 * min(chi2.cdf(chi2_stat, df=n-1), chi2.sf(chi2_stat, df=n-1))
         p_values_chi2_tracking_x0.append(p_val)
     # calculate how many times null hypothesis of μ rejected
@@ -1062,8 +1072,6 @@ def Momentum_Resolution():
     print(f"H_0 (σ=1) rejected in {fails} of {n_datasets} times")
     print()
 
-    ## calculate t-test and chi**2 for 1 dataset (first one in c)
-    #t-test
     t_test, p_val_t = ttest_1samp(p_T_pulls_0_3, popmean=0)
 
     #Chi2 test
