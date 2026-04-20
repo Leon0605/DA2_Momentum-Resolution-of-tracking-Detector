@@ -266,7 +266,7 @@ def Momentum_Resolution():
 
     ## b) Fit straight lines and calculate reco p_T ##
     # calculate linear regression before magnet
-    coeffs_before, cov_before = optimize.curve_fit(line, z_detectors[:zbegin_index+1], hits_warmup[:zbegin_index+1], sigma=unc_warmup[:zbegin_index+1], absolute_sigma=True)
+    coeffs_before, cov_before = optimize.curve_fit(line, z_detectors[1:zbegin_index+1], hits_warmup[1:zbegin_index+1], sigma=unc_warmup[1:zbegin_index+1], absolute_sigma=True)
     particle_warmup.s0reco, particle_warmup.x0reco = coeffs_before
     particle_warmup.s0recoUncert, particle_warmup.x0recoUncert = np.sqrt(np.diag(cov_before))
 
@@ -355,7 +355,7 @@ def Momentum_Resolution():
     true_false= []
     for i, p in enumerate(particles):
         # calculate linear regression before magnet
-        coeffs_before, cov_before = optimize.curve_fit(line, z_detectors[:zbegin_index+1], hitpoints[i][:zbegin_index+1], sigma=hitpoints_unc[i][:zbegin_index+1], absolute_sigma=True)
+        coeffs_before, cov_before = optimize.curve_fit(line, z_detectors[1:zbegin_index+1], hitpoints[i][1:zbegin_index+1], sigma=hitpoints_unc[i][1:zbegin_index+1], absolute_sigma=True)
         p.s0reco, p.x0reco = coeffs_before
         p.s0recoUncert, p.x0recoUncert = np.sqrt(np.diag(cov_before))
 
@@ -531,7 +531,7 @@ def Momentum_Resolution():
         true_false= []
         for i, p in enumerate(particles):
             # calculate linear regression before magnet
-            coeffs_before, cov_before = optimize.curve_fit(line, z_detectors[:zbegin_index+1], hitpoints[i][:zbegin_index+1], sigma=hitpoints_unc[i][:zbegin_index+1], absolute_sigma=True)
+            coeffs_before, cov_before = optimize.curve_fit(line, z_detectors[1:zbegin_index+1], hitpoints[i][1:zbegin_index+1], sigma=hitpoints_unc[i][1:zbegin_index+1], absolute_sigma=True)
             p.s0reco, p.x0reco = coeffs_before
             p.s0recoUncert, p.x0recoUncert = np.sqrt(np.diag(cov_before))
 
@@ -678,7 +678,7 @@ def Momentum_Resolution():
         true_false= []
         for i, p in enumerate(particles):
             # calculate linear regression before magnet
-            coeffs_before, cov_before = optimize.curve_fit(line, z_detectors[:zbegin_index+1], hitpoints[i][:zbegin_index+1], sigma=hitpoints_unc[i][:zbegin_index+1], absolute_sigma=True)
+            coeffs_before, cov_before = optimize.curve_fit(line, z_detectors[1:zbegin_index+1], hitpoints[i][1:zbegin_index+1], sigma=hitpoints_unc[i][1:zbegin_index+1], absolute_sigma=True)
             p.s0reco, p.x0reco = coeffs_before
             p.s0recoUncert, p.x0recoUncert = np.sqrt(np.diag(cov_before))
 
@@ -927,7 +927,7 @@ def Momentum_Resolution():
         pullx0 = []
         for i, p in enumerate(particles):
             # calculate linear regression before magnet
-            coeffs_before, cov_before = optimize.curve_fit(line, z_detectors[:zbegin_index+1], hitpoints[i][:zbegin_index+1], sigma=hitpoints_unc[i][:zbegin_index+1], absolute_sigma=True)
+            coeffs_before, cov_before = optimize.curve_fit(line, z_detectors[1:zbegin_index+1], hitpoints[i][1:zbegin_index+1], sigma=hitpoints_unc[i][1:zbegin_index+1], absolute_sigma=True)
             p.s0reco, p.x0reco = coeffs_before
             p.s0recoUncert, p.x0recoUncert = np.sqrt(np.diag(cov_before))
 
