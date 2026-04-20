@@ -301,7 +301,7 @@ def Momentum_Resolution():
     plt.figure(figsize=(20,12))
 
     # plot detector layers
-    for z in z_detectors:
+    for z in z_detectors[1:]:
         plt.plot([z, z + 10.0**(-6)], [np.min(hits_warmup)-0.5, np.max(hits_warmup)+0.5], linewidth=1, color="lightgrey")
 
     # plot reconstructed trajectory
@@ -314,7 +314,7 @@ def Momentum_Resolution():
     plt.plot(z_detectors[zbegin_index+1:], particle_warmup.xactual[zbegin_index+1:],linestyle="dashed", color="orange")
     plt.plot(curve_z_i, curve_interpolation_warmup, linestyle="dashed", color="orange")
     # plot uncertainty
-    plt.errorbar(z_detectors, hits_warmup, yerr=unc_warmup, fmt='.', markersize=3, linewidth=1, color="red", label="Uncertainties Hit positions")
+    plt.errorbar(z_detectors[1:], hits_warmup[1:], yerr=unc_warmup[1:], fmt='.', markersize=3, linewidth=1, color="red", label="Uncertainties Hit positions")
     # plot infos
     plt.xlabel("z [mm]")
     plt.ylabel("x [mm]")
