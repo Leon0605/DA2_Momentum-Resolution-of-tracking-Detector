@@ -318,16 +318,16 @@ def Momentum_Resolution():
     
     print(f"--- Warmup: Reconstruction of p_T ---")
     print(f"p_T true: {p_T_true} GeV")
-    print(f"p_T reconstructed: {p_T_reco_warmup:.5f} GeV")
-    print(f"diff p_T true and reco: {np.abs(p_T_true - p_T_reco_warmup):.5f} GeV")
-    print(f"uncertainty of reconstruction: {p_T_reco_unc_warmup:.5f} GeV")
+    print(f"p_T reconstructed: {p_T_reco_warmup:.3g} GeV")
+    print(f"diff p_T true and reco: {np.abs(p_T_true - p_T_reco_warmup):.3g} GeV")
+    print(f"uncertainty of reconstruction: {p_T_reco_unc_warmup:.3g} GeV")
     print()
 
     # plot of simulation
     plt.figure(figsize=(20,12))
 
     # plot detector layers
-    for z in z_detectors:
+    for z in z_detectors[1:]:
         plt.plot([z, z + 10.0**(-6)], [np.min(hits_warmup)-0.5, np.max(hits_warmup)+0.5], linewidth=1, color="lightgrey")
 
     # plot reconstructed trajectory
@@ -340,7 +340,7 @@ def Momentum_Resolution():
     plt.plot(z_detectors[zbegin_index+1:], particle_warmup.xactual[zbegin_index+1:],linestyle="dashed", color="orange")
     plt.plot(curve_z_i, curve_interpolation_warmup, linestyle="dashed", color="orange")
     # plot uncertainty
-    # plt.errorbar(z_detectors, hits_warmup, yerr=unc_warmup, fmt='.', markersize=3, linewidth=1, color="red", label="Uncertainties Hit positions")
+    plt.errorbar(z_detectors[1:], hits_warmup[1:], yerr=unc_warmup[1:], fmt='.', markersize=3, linewidth=1, color="red", label="Uncertainties Hit positions")
     # plot infos
     plt.xlabel("z [mm]")
     plt.ylabel("x [mm]")
@@ -431,6 +431,7 @@ def Momentum_Resolution():
     ## d) calculate histograms of differences ##
     # prepare plots
     fig, ax = plt.subplots(2, 5, figsize=(20, 12))
+    fig.suptitle("Resolution Histogram", fontsize=13, fontweight="bold")
     #fig.tight_layout(pad=3.0)
     ax = ax.flatten()
 
@@ -452,9 +453,9 @@ def Momentum_Resolution():
     mean = np.mean(p_T_diff)
     std = np.std(p_T_diff)
 
-    print(f"--- p_T difference histogram statistics p_T_true={p_T_true} GeV, B = {magnet_10_0_5.B} T ---")
-    print(f"μ: {mean} [GeV]")
-    print(f"σ: {std} [GeV]")
+    print(f"--- p_T Resolution histogram statistics p_T_true={p_T_true} GeV, B = {magnet_10_0_5.B} T ---")
+    print(f"μ: {mean:.3g} [GeV]")
+    print(f"σ: {std:.3g} [GeV]")
     print()
 
     # save mean/std
@@ -464,12 +465,13 @@ def Momentum_Resolution():
     B_stds_diff.append(std)
 
     # plot histogram
-    sns.histplot(p_T_diff, bins="auto", stat="density", kde=True, color="skyblue", ax=ax[0])
-    ax[0].axvline(mean, color="red", linestyle="dashed", label=f"μ: {mean:.4f}")
-    ax[0].axvline(mean + std, color="orange", linestyle=":", label=f"σ: {std:.4f}")
+    sns.histplot(p_T_diff, bins="auto", stat="density", kde=True, edgecolor="white", ax=ax[0])
+    ax[0].axvline(mean, color="red", linestyle="dashed", label=f"μ: {mean:.3g}")
+    ax[0].axvline(mean + std, color="orange", linestyle=":", label=f"σ: {std:.3g}")
     ax[0].axvline(mean - std, color="orange", linestyle=":")
-    ax[0].set_title("p_T diff histogram, p_T_true=0.3 GeV")
+    ax[0].set_title("p_T_true=0.3 GeV", fontsize=10)
     ax[0].set_xlabel("p_T_reco − p_T_true [GeV]")
+    ax[0].annotate(f'Plot 1.1', xy=(0.5, -0.14), xycoords='axes fraction', ha='center', va='center', fontsize=8, color='gray')
     ax[0].set_ylabel("Density")
     ax[0].legend()
 
@@ -477,6 +479,7 @@ def Momentum_Resolution():
     ## e) calculate histogram  of pulls ##
     # prepare plots
     fig2, bx = plt.subplots(2, 5, figsize=(20, 12))
+    fig2.suptitle("Pull Histogram", fontsize=13, fontweight="bold")
     #fig2.tight_layout(pad=3.0)
     bx = bx.flatten()
 
@@ -488,9 +491,9 @@ def Momentum_Resolution():
     mean = np.mean(p_T_pulls_0_3)
     std = np.std(p_T_pulls_0_3)
 
-    print(f"--- p_T pull histogram statistics p_T_true={p_T_true} GeV, B = {magnet_10_0_5.B} T ---")
-    print(f"μ: {mean} [GeV]")
-    print(f"σ: {std} [GeV]")
+    print(f"--- p_T Pull histogram statistics p_T_true={p_T_true} GeV, B = {magnet_10_0_5.B} T ---")
+    print(f"μ: {mean:3g} [GeV]")
+    print(f"σ: {std:3g} [GeV]")
     print()
 
     # save mean/std
@@ -500,13 +503,14 @@ def Momentum_Resolution():
     B_stds_pull.append(std)
 
     # plot histogram
-    sns.histplot(p_T_pulls_0_3, bins="auto", stat="density", kde=True, color="skyblue", ax=bx[0])
-    bx[0].axvline(mean, color="red", linestyle="dashed", label=f"μ: {mean:.4f}")
-    bx[0].axvline(mean + std, color="orange", linestyle=":", label=f"σ: {std:.4f}")
+    sns.histplot(p_T_pulls_0_3, bins="auto", stat="density", kde=True, edgecolor="white", ax=bx[0])
+    bx[0].axvline(mean, color="red", linestyle="dashed", label=f"μ: {mean:.3g}")
+    bx[0].axvline(mean + std, color="orange", linestyle=":", label=f"σ: {std:.3g}")
     bx[0].axvline(mean - std, color="orange", linestyle=":")
-    bx[0].set_title("p_T pull histogram, p_T_true=0.3 GeV")
+    bx[0].set_title("p_T_true=0.3 GeV", fontsize=10)
     bx[0].set_xlabel("p_T_reco pull")
     bx[0].set_ylabel("Density")
+    bx[0].annotate(f'Plot 2.1', xy=(0.5, -0.14), xycoords='axes fraction', ha='center', va='center', fontsize=8, color='gray')
     bx[0].legend()
 
     # prepare plots for overlay plot
@@ -520,13 +524,13 @@ def Momentum_Resolution():
     colors_B  = plt.cm.plasma(np.linspace(0.2, 1, 4))
 
     # calculate kde
-    cx[0].plot(x_ref, gaussian_kde(p_T_pulls_0_3)(x_ref), color=colors_pT[0], label=f"p_T=0.3 GeV (μ={mean:.2f}, σ={std:.2f})")
-    cx[1].plot(x_ref, gaussian_kde(p_T_pulls_0_3)(x_ref), color=colors_pT[0], label=f"B=0.5 T (μ={mean:.2f}, σ={std:.2f})")
+    cx[0].plot(x_ref, gaussian_kde(p_T_pulls_0_3)(x_ref), color=colors_pT[0], label=f"p_T=0.3 GeV (μ={mean:.3g}, σ={std:.3g})")
+    cx[1].plot(x_ref, gaussian_kde(p_T_pulls_0_3)(x_ref), color=colors_pT[0], label=f"B=0.5 T (μ={mean:.3g}, σ={std:.3g})")
 
     # plot mean/std as s function of p_T_true and B
     fig4, dx = plt.subplots(2, 4, figsize=(20, 12))
     dx = dx.flatten()
-    fig4.suptitle("Evolution of Diff/Pull Statistcs", fontsize=13, fontweight="bold")
+    fig4.suptitle("Evolution of Resolution/Pull Statistcs", fontsize=13, fontweight="bold")
     p_T_x_range = [0.3,0.1,1,2,5,10,20]
     B_x_range = [0.5,1.0,1.5,2.0]
 
@@ -635,9 +639,9 @@ def Momentum_Resolution():
         mean = np.mean(p_T_diff)
         std = np.std(p_T_diff)
 
-        print(f"--- p_T difference histogram statistics p_T_true={p_T} GeV, B={magnet_10_0_5.B} T ---")
-        print(f"μ: {mean} [GeV]")
-        print(f"σ: {std} [GeV]")
+        print(f"--- p_T Resolution histogram statistics p_T_true={p_T} GeV, B={magnet_10_0_5.B} T ---")
+        print(f"μ: {mean:.3g} [GeV]")
+        print(f"σ: {std:.3g} [GeV]")
         print()
 
         # save mean/std
@@ -645,13 +649,14 @@ def Momentum_Resolution():
         p_T_stds_diff.append(std)
 
         # plot histogram
-        #sns.histplot(p_T_diff, bins="auto", stat="density", kde=True, color="skyblue", ax=ax[index])
-        ax[index].axvline(mean, color="red", linestyle="dashed", label=f"μ: {mean:.4f}")
-        ax[index].axvline(mean + std, color="orange", linestyle=":", label=f"σ: {std:.4f}")
+        sns.histplot(p_T_diff, bins="auto", stat="density", kde=True, edgecolor="white", ax=ax[index])
+        ax[index].axvline(mean, color="red", linestyle="dashed", label=f"μ: {mean:.3g}")
+        ax[index].axvline(mean + std, color="orange", linestyle=":", label=f"σ: {std:.3g}")
         ax[index].axvline(mean - std, color="orange", linestyle=":")
-        ax[index].set_title(f"p_T diff histogram, p_T_true={p_T} GeV")
+        ax[index].set_title(f"p_T_true={p_T} GeV", fontsize=10)
         ax[index].set_xlabel("p_T_reco − p_T_true [GeV]")
         ax[index].set_ylabel("Density")
+        ax[index].annotate(f'Plot 1.{index+1}', xy=(0.5, -0.14), xycoords='axes fraction', ha='center', va='center', fontsize=8, color='gray')
         ax[index].legend()
 
 
@@ -664,9 +669,9 @@ def Momentum_Resolution():
         mean = np.mean(p_T_pulls)
         std = np.std(p_T_pulls)
 
-        print(f"--- p_T pull histogram statistics p_T_true={p_T} GeV, B={magnet_10_0_5.B} T ---")
-        print(f"μ: {mean} [GeV]")
-        print(f"σ: {std} [GeV]")
+        print(f"--- p_T Pull histogram statistics p_T_true={p_T} GeV, B={magnet_10_0_5.B} T ---")
+        print(f"μ: {mean:.3g} [GeV]")
+        print(f"σ: {std:.3g} [GeV]")
         print()
 
         # save mean/std
@@ -674,17 +679,18 @@ def Momentum_Resolution():
         p_T_stds_pull.append(std)
 
         # plot histogram
-        sns.histplot(p_T_pulls, bins="auto", stat="density", kde=True, color="skyblue", ax=bx[index])
-        bx[index].axvline(mean, color="red", linestyle="dashed", label=f"μ: {mean:.4f}")
-        bx[index].axvline(mean + std, color="orange", linestyle=":", label=f"σ: {std:.4f}")
+        sns.histplot(p_T_pulls, bins="auto", stat="density", kde=True, edgecolor="white", ax=bx[index])
+        bx[index].axvline(mean, color="red", linestyle="dashed", label=f"μ: {mean:.3g}")
+        bx[index].axvline(mean + std, color="orange", linestyle=":", label=f"σ: {std:.3g}")
         bx[index].axvline(mean - std, color="orange", linestyle=":")
-        bx[index].set_title(f"p_T pull histogram, p_T_true={p_T} GeV")
+        bx[index].set_title(f"p_T_true={p_T} GeV", fontsize=10)
         bx[index].set_xlabel("p_T_reco pull")
         bx[index].set_ylabel("Density")
+        bx[index].annotate(f'Plot 2.{index+1}', xy=(0.5, -0.14), xycoords='axes fraction', ha='center', va='center', fontsize=8, color='gray')
         bx[index].legend()
 
         # plot kde
-        cx[0].plot(x_ref, gaussian_kde(p_T_pulls)(x_ref), color=colors_pT[index], label=f"p_T={p_T} GeV (μ={mean:.2f}, σ={std:.2f})")
+        cx[0].plot(x_ref, gaussian_kde(p_T_pulls)(x_ref), color=colors_pT[index], label=f"p_T={p_T} GeV (μ={mean:.3g}, σ={std:.3g})")
 
 
     ### Repeat c)-e) for B in in {1.0,1.5,2.0} T, p_T_true = 0.3 GeV ###
@@ -794,9 +800,9 @@ def Momentum_Resolution():
         mean = np.mean(p_T_diff)
         std = np.std(p_T_diff)
 
-        print(f"--- p_T difference histogram statistics p_T_true={p_T_true} GeV, B={magnet_10.B} T ---")
-        print(f"μ: {mean} [GeV]")
-        print(f"σ: {std} [GeV]")
+        print(f"--- p_T Resolution histogram statistics p_T_true={p_T_true} GeV, B={magnet_10.B} T ---")
+        print(f"μ: {mean:.3g} [GeV]")
+        print(f"σ: {std:.3g} [GeV]")
         print()
 
         # save mean/std
@@ -804,13 +810,14 @@ def Momentum_Resolution():
         B_stds_diff.append(std)
 
         # plot histogram
-        sns.histplot(p_T_diff, bins="auto", stat="density", kde=True, color="skyblue", ax=ax[index])
-        ax[index].axvline(mean, color="red", linestyle="dashed", label=f"μ: {mean:.4f}")
-        ax[index].axvline(mean + std, color="orange", linestyle=":", label=f"σ: {std:.4f}")
+        sns.histplot(p_T_diff, bins="auto", stat="density", kde=True, edgecolor="white", ax=ax[index])
+        ax[index].axvline(mean, color="red", linestyle="dashed", label=f"μ: {mean:.3g}")
+        ax[index].axvline(mean + std, color="orange", linestyle=":", label=f"σ: {std:.3g}")
         ax[index].axvline(mean - std, color="orange", linestyle=":")
-        ax[index].set_title(f"p_T diff histogram, B={magnet_10.B} T")
+        ax[index].set_title(f"B={magnet_10.B} T", fontsize=10)
         ax[index].set_xlabel("p_T_reco − p_T_true [GeV]")
         ax[index].set_ylabel("Density")
+        ax[index].annotate(f'Plot 1.{index+1}', xy=(0.5, -0.14), xycoords='axes fraction', ha='center', va='center', fontsize=8, color='gray')
         ax[index].legend()
 
 
@@ -823,9 +830,9 @@ def Momentum_Resolution():
         mean = np.mean(p_T_pulls)
         std = np.std(p_T_pulls)
 
-        print(f"--- p_T pull histogram statistics p_T_true={p_T_true} GeV, B={magnet_10.B} T ---")
-        print(f"μ: {mean} [GeV]")
-        print(f"σ: {std} [GeV]")
+        print(f"--- p_T Pull histogram statistics p_T_true={p_T_true} GeV, B={magnet_10.B} T ---")
+        print(f"μ: {mean:.3g} [GeV]")
+        print(f"σ: {std:.3g} [GeV]")
         print()
 
         # save mean/std
@@ -833,32 +840,35 @@ def Momentum_Resolution():
         B_stds_pull.append(std)
 
         # plot histogram
-        sns.histplot(p_T_pulls, bins="auto", stat="density", kde=True, color="skyblue", ax=bx[index])
-        bx[index].axvline(mean, color="red", linestyle="dashed", label=f"μ: {mean:.4f}")
-        bx[index].axvline(mean + std, color="orange", linestyle=":", label=f"σ: {std:.4f}")
+        sns.histplot(p_T_pulls, bins="auto", stat="density", kde=True, edgecolor="white", ax=bx[index])
+        bx[index].axvline(mean, color="red", linestyle="dashed", label=f"μ: {mean:.3g}")
+        bx[index].axvline(mean + std, color="orange", linestyle=":", label=f"σ: {std:.3g}")
         bx[index].axvline(mean - std, color="orange", linestyle=":")
-        bx[index].set_title(f"p_T pull histogram, B={magnet_10.B} T")
+        bx[index].set_title(f"B={magnet_10.B} T", fontsize=10)
         bx[index].set_xlabel("p_T_reco pull")
         bx[index].set_ylabel("Density")
+        bx[index].annotate(f'Plot 2.{index+1}', xy=(0.5, -0.14), xycoords='axes fraction', ha='center', va='center', fontsize=8, color='gray')
         bx[index].legend()
 
         # plot kde
-        cx[1].plot(x_ref, gaussian_kde(p_T_pulls)(x_ref), color=colors_B[index-7], label=f"B={magnet_10.B} T (μ={mean:.2f}, σ={std:.2f})")
+        cx[1].plot(x_ref, gaussian_kde(p_T_pulls)(x_ref), color=colors_B[index-7], label=f"B={magnet_10.B} T (μ={mean:.3g}, σ={std:.3g})")
 
     # plot information cx
     cx[0].axvline(0, color='grey', linewidth=0.8, alpha=0.5)
     cx[0].set_xlim(-10, 5)
     cx[0].set_xlabel("Pull")
     cx[0].set_ylabel("Density")
-    cx[0].set_title("Pull vs. p_T_true (B=0.5 T)")
-    cx[0].legend(fontsize=7)
+    cx[0].set_title("Pull vs. p_T_true (B=0.5 T)", fontsize=10)
+    cx[0].annotate(f'Plot 3.{1}', xy=(0.5, -0.12), xycoords='axes fraction', ha='center', va='center', fontsize=8, color='gray')
+    cx[0].legend()
 
     cx[1].axvline(0, color='grey', linewidth=0.8, alpha=0.5)
     cx[1].set_xlim(-10, 5)
     cx[1].set_xlabel("Pull")
     cx[1].set_ylabel("Density")
-    cx[1].set_title("Pull vs. B (p_T_true=0.3 GeV)")
-    cx[1].legend(fontsize=7)
+    cx[1].set_title("Pull vs. B (p_T_true=0.3 GeV)", fontsize=10)
+    cx[1].annotate(f'Plot 3.{2}', xy=(0.5, -0.12), xycoords='axes fraction', ha='center', va='center', fontsize=8, color='gray')
+    cx[1].legend()
 
     
     # swap p_T=0.1 and =0.3 because wrong order (first experiment is with 0.3)
@@ -874,50 +884,64 @@ def Momentum_Resolution():
     dx[0].plot(p_T_x_range, p_T_means_diff, color="orange")
     dx[0].set_xlabel("p_T [GeV]")
     dx[0].set_ylabel("μ of Diff")
-    dx[0].set_title(f"Evolution μ(p_T) of Diff")
+    dx[0].set_title(f"μ(p_T) of Resolution", fontsize=10)
     dx[0].set_ylim(np.min(p_T_means_diff)-1, np.max(p_T_means_diff)+1)
+    dx[0].annotate(f'Plot 4.{1}', xy=(0.5, -0.14), xycoords='axes fraction', ha='center', va='center', fontsize=8, color='gray')
+
     dx[1].plot(p_T_x_range, p_T_means_pull, color="orange")
     dx[1].set_xlabel("p_T [GeV]")
     dx[1].set_ylabel("μ of Pull")
-    dx[1].set_title(f"Evolution μ(p_T) of Pull")
+    dx[1].set_title(f"μ(p_T) of Pull", fontsize=10)
     dx[1].set_ylim(np.min(p_T_means_pull)-1, np.max(p_T_means_pull)+1)
+    dx[1].annotate(f'Plot 4.{2}', xy=(0.5, -0.14), xycoords='axes fraction', ha='center', va='center', fontsize=8, color='gray')
+
     dx[2].plot(B_x_range, B_means_diff, color="orange")
     dx[2].set_xlabel("B [T]")
-    dx[2].set_ylabel("μ of Diff")
-    dx[2].set_title(f"Evolution μ(B) of Diff")
+    dx[2].set_ylabel("μ of Resolution")
+    dx[2].set_title(f"μ(B) of Resolution", fontsize=10)
     dx[2].set_ylim(np.min(B_means_diff)-1, np.max(B_means_diff)+1)
+    dx[2].annotate(f'Plot 4.{3}', xy=(0.5, -0.14), xycoords='axes fraction', ha='center', va='center', fontsize=8, color='gray')
+
     dx[3].plot(B_x_range, B_means_pull, color="orange")
     dx[3].set_xlabel("B [T]")
     dx[3].set_ylabel("μ of Pull")
-    dx[3].set_title(f"Evolution μ(B) of Pull")
+    dx[3].set_title(f"μ(B) of Pull", fontsize=10)
     dx[3].set_ylim(np.min(p_T_means_pull)-1, np.max(p_T_means_pull)+1)
+    dx[3].annotate(f'Plot 4.{4}', xy=(0.5, -0.14), xycoords='axes fraction', ha='center', va='center', fontsize=8, color='gray')
 
     # plot evolution pull/diff std
     dx[4].plot(p_T_x_range, p_T_stds_diff, color="skyblue")
     dx[4].set_xlabel("p_T [GeV]")
-    dx[4].set_ylabel("σ of Diff")
-    dx[4].set_title(f"Evolution σ(p_T) of Diff")
+    dx[4].set_ylabel("σ of Resolution")
+    dx[4].set_title(f"Evolution σ(p_T) of Resolution", fontsize=10)
     dx[4].set_ylim(np.min(p_T_stds_diff)-1, np.max(p_T_stds_diff)+1)
+    dx[4].annotate(f'Plot 4.{5}', xy=(0.5, -0.14), xycoords='axes fraction', ha='center', va='center', fontsize=8, color='gray')
+
     dx[5].plot(p_T_x_range, p_T_stds_pull, color="skyblue")
     dx[5].set_xlabel("p_T [GeV]")
     dx[5].set_ylabel("σ of Pull")
-    dx[5].set_title(f"Evolution σ(p_T) of Pull")
+    dx[5].set_title(f"Evolution σ(p_T) of Pull", fontsize=10)
     dx[5].set_ylim(np.min(p_T_stds_pull)-1, np.max(p_T_stds_pull)+1)
+    dx[5].annotate(f'Plot 4.{6}', xy=(0.5, -0.14), xycoords='axes fraction', ha='center', va='center', fontsize=8, color='gray')
+
     dx[6].plot(B_x_range, B_stds_diff, color="skyblue")
     dx[6].set_xlabel("B [T]")
-    dx[6].set_ylabel("σ of Diff")
-    dx[6].set_title(f"Evolution σ(B) of Diff")
+    dx[6].set_ylabel("σ of Resolution")
+    dx[6].set_title(f"Evolution σ(B) of Resolution", fontsize=10)
     dx[6].set_ylim(np.min(B_stds_diff)-1, np.max(B_stds_diff)+1)
+    dx[6].annotate(f'Plot 4.{7}', xy=(0.5, -0.14), xycoords='axes fraction', ha='center', va='center', fontsize=8, color='gray')
+
     dx[7].plot(B_x_range, B_stds_pull, color="skyblue")
     dx[7].set_xlabel("B [T]")
     dx[7].set_ylabel("σ of Pull")
-    dx[7].set_title(f"Evolution σ(B) of Pull")
+    dx[7].set_title(f"Evolution σ(B) of Pull", fontsize=10)
     dx[7].set_ylim(np.min(p_T_stds_pull)-1, np.max(p_T_stds_pull)+1)
+    dx[7].annotate(f'Plot 4.{8}', xy=(0.5, -0.14), xycoords='axes fraction', ha='center', va='center', fontsize=8, color='gray')
 
-    fig.tight_layout()
-    fig2.tight_layout()
-    fig3.tight_layout()
-    fig4.tight_layout()
+    fig.tight_layout(pad=3)
+    fig2.tight_layout(pad=3)
+    fig3.tight_layout(pad=3)
+    fig4.tight_layout(pad=3)
     plt.show()
 
 
@@ -1058,18 +1082,18 @@ def Momentum_Resolution():
     print()
     print("Rejection rate (p < 0.0001%):")
     fails = sum(1 for p in p_values_t_test_momentum if p < 0.000001)
-    print(f"H_0 (μ=1) rejected in {fails} of {n_datasets} times")
+    print(f"H_0 (μ=0, p_T) rejected in {fails} of {n_datasets} times")
     fails = sum(1 for p in p_values_t_test_tracking_s0 if p < 0.000001)
-    print(f"H_0 (μ=1) rejected in {fails} of {n_datasets} times")
+    print(f"H_0 (μ=0, s0) rejected in {fails} of {n_datasets} times")
     fails = sum(1 for p in p_values_t_test_tracking_x0 if p < 0.000001)
-    print(f"H_0 (μ=1) rejected in {fails} of {n_datasets} times")
+    print(f"H_0 (μ=0, x0) rejected in {fails} of {n_datasets} times")
     # calculate how many times null hypothesis of sigma rejected
     fails = sum(1 for p in p_values_chi2_momentum if p < 0.000001)
-    print(f"H_0 (σ=1) rejected in {fails} of {n_datasets} times")
+    print(f"H_0 (σ=1, p_T) rejected in {fails} of {n_datasets} times")
     fails = sum(1 for p in p_values_chi2_tracking_s0 if p < 0.000001)
-    print(f"H_0 (σ=1) rejected in {fails} of {n_datasets} times")
+    print(f"H_0 (σ=1, s0) rejected in {fails} of {n_datasets} times")
     fails = sum(1 for p in p_values_chi2_tracking_x0 if p < 0.000001)
-    print(f"H_0 (σ=1) rejected in {fails} of {n_datasets} times")
+    print(f"H_0 (σ=1, x0) rejected in {fails} of {n_datasets} times")
     print()
 
     t_test, p_val_t = ttest_1samp(p_T_pulls_0_3, popmean=0)
@@ -1084,12 +1108,11 @@ def Momentum_Resolution():
 
     # calculate how many times null hypothesis of μ rejected
     print("P_values of First experiment")
-    print(f"H_0 (μ=1): p = {p_val_t}")
+    print(f"H_0 (μ=0): p = {p_val_t}")
 
     # calculate how many times null hypothesis of sigma rejected
     print(f"H_0 (σ=1): p = {p_val_chi}")
     print()
-
 
 # run Part 4 Momentum Resolution
 Momentum_Resolution()
