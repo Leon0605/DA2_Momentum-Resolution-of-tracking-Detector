@@ -13,7 +13,7 @@ n_after = 3         # number of detection planes after magnet
 dZ = 20             # distance detector planes (2cm = 20mm)
 cellWidth = 0.5     # width of detection plane cells in 100 mikrometers (1mm is 1 then, 1cm is 10)
 L = 100             # Magnet Lenght
-B = 0.5             # strength of magnetic field in T
+B = 0.5            # strength of magnetic field in T
 
 
 # particle class
@@ -120,7 +120,7 @@ class Magnet:
     
         D = np.sin(phi_out) - np.sin(phi_in)
     
-        p_T_reconstructed = np.abs(0.3  * B * L * 1e-3 / D)   # 1e-3: mm → m
+        p_T_reconstructed = np.abs(0.3  * self.B * self.L * 1e-3 / D)   # 1e-3: mm → m
     
         s_0_term  = s_entry**2 + 1
         s_1_term  = s_output**2 + 1
@@ -528,7 +528,7 @@ def Momentum_Resolution():
     fig3, cx = plt.subplots(1, 2, figsize=(20, 12))
     cx = cx.flatten()
     fig3.suptitle("Pull distributions overlaid", fontsize=13, fontweight="bold")
-    x_ref = np.linspace(-200, 50, 2500)
+    x_ref = np.linspace(-20, 20, 2000)
     cx[0].plot(x_ref, norm.pdf(x_ref), linestyle="dashed", color="black", label="N(0,1) ideal")
     cx[1].plot(x_ref, norm.pdf(x_ref), linestyle="dashed", color="black", label="N(0,1) ideal")
     colors_pT = plt.cm.viridis(np.linspace(0, 1, 7))
@@ -866,7 +866,7 @@ def Momentum_Resolution():
 
     # plot information cx
     cx[0].axvline(0, color='grey', linewidth=0.8, alpha=0.5)
-    cx[0].set_xlim(-15, 5)
+    cx[0].set_xlim(-6, 6)
     cx[0].set_xlabel("Pull")
     cx[0].set_ylabel("Density")
     cx[0].set_title("Pull vs. p_T_true (B=0.5 T)", fontsize=10)
@@ -874,7 +874,7 @@ def Momentum_Resolution():
     cx[0].legend()
 
     cx[1].axvline(0, color='grey', linewidth=0.8, alpha=0.5)
-    cx[1].set_xlim(-70, 5)
+    cx[1].set_xlim(-5, 5)
     cx[1].set_xlabel("Pull")
     cx[1].set_ylabel("Density")
     cx[1].set_title("Pull vs. B (p_T_true=0.3 GeV)", fontsize=10)
@@ -890,8 +890,6 @@ def Momentum_Resolution():
     swap(p_T_stds_pull, 0, 1)
 
     # plot evolution pull/diff mean
-    minimum_rangey = np.min(p_T_means_pull)
-    maximum_rangey = np.max(p_T_means_diff)
     dx[0].plot(p_T_x_range, p_T_means_diff, color="orange")
     dx[0].set_xlabel("p_T [GeV]")
     dx[0].set_ylabel("μ of Diff")
@@ -966,7 +964,6 @@ def Momentum_Resolution():
     pulls = []
     t_tests = []
     
-    
     p_values_t_test_momentum = []
     p_values_t_test_tracking_s0 = []
     p_values_t_test_tracking_x0 = []
@@ -998,7 +995,6 @@ def Momentum_Resolution():
 
             #random sampling method
             #hit = generatePoints_random(p)
-            
             hitpoints.append(hit)
             
 
@@ -1006,7 +1002,6 @@ def Momentum_Resolution():
         p_Ts_unc = []
         x_line_reco_before_magnet = []
         x_line_reco_after_magnet = []
-        true_false= []
         pulls0 = []
         pullx0 = []
         for i, p in enumerate(particles):
@@ -1049,8 +1044,6 @@ def Momentum_Resolution():
             p_T_reco, p_T_reco_unc = magnet_10_0_5.reconstruct_momentum(p.q, p.s0reco, p.sMagnetreco, p.s0recoUncert, p.sMagnetrecoUncert)
             p_Ts_reco.append(p_T_reco)
             p_Ts_unc.append(p_T_reco_unc)
-
-            #true_false.append(np.any(hitpoints_unc[0] == 0))
 
         pulls0 = np.array(pulls0)
         pullx0 = np.array(pullx0)
@@ -1127,6 +1120,3 @@ def Momentum_Resolution():
 
 # run Part 4 Momentum Resolution
 Momentum_Resolution()
-
-
-#l. 340, (true_false function commented in/out)
