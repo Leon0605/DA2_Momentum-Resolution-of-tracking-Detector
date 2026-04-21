@@ -109,12 +109,24 @@ class Magnet:
 
     # reconstruct p_T
     def reconstruct_momentum(self, q, s_entry, s_output, unc_s_entry, unc_s_output, covariance_s_in_out=0):
-        theta = np.abs(np.arctan(s_entry) - np.arctan(s_output))
-        p_T_reconstructed = (self.L * self.B * np.abs(q)) / theta * 3e-4
+        #theta = np.abs(np.arctan(s_entry) - np.arctan(s_output))
+        #p_T_reconstructed = (self.L * self.B * np.abs(q)) / theta * 3e-4
+#
+        ## calculate error propagation
+        #delta_angle = np.arctan(s_entry) - np.arctan(s_output)
+        #unc_p_T_reco = np.sqrt((self.L * q * self.B * 3e-4)**2 * (unc_s_entry**2 / ((1+s_entry**2)**2 * delta_angle**4) + unc_s_output**2 / ((1+s_output**2)**2 * delta_angle**4) - 2 * covariance_s_in_out / ((1+s_entry**2) * (1+s_output**2) * delta_angle**4)))
+        phi_in  = np.arctan(s_entry)
+        phi_out = np.arctan(s_output)
+    
+        D = np.sin(phi_out) - np.sin(phi_in)
+    
+        p_T_reconstructed = np.abs(0.3  * B * L * 1e-3 / D)   # 1e-3: mm → m
+    
+        s_0_term  = s_entry**2 + 1
+        s_1_term  = s_output**2 + 1
 
-        # calculate error propagation
-        delta_angle = np.arctan(s_entry) - np.arctan(s_output)
-        unc_p_T_reco = np.sqrt((self.L * q * self.B * 3e-4)**2 * (unc_s_entry**2 / ((1+s_entry**2)**2 * delta_angle**4) + unc_s_output**2 / ((1+s_output**2)**2 * delta_angle**4) - 2 * covariance_s_in_out / ((1+s_entry**2) * (1+s_output**2) * delta_angle**4)))
+        unc_p_T_reco = np.abs(0.3  * q * self.B * self.L* 1e-3) * np.sqrt(s_0_term**3 * unc_s_output**2 + s_1_term**3 * unc_s_entry**2) / (np.sqrt(s_1_term) * np.sqrt(s_0_term) * (s_entry * np.sqrt(s_1_term) - s_output * np.sqrt(s_0_term)) ** 2)
+    
         return (p_T_reconstructed, unc_p_T_reco)
 
 
@@ -129,8 +141,6 @@ def cellsHit(p, z, zMagnet=None):
         p.layers.append(np.floor(x/cellWidth)+1)
     else:
         p.layers.append(np.floor(x/cellWidth)) #calculate and store cell index
-
-
 
 
 def generatePoints(p):
@@ -477,7 +487,7 @@ def Momentum_Resolution():
     fig3, cx = plt.subplots(1, 2, figsize=(20, 12))
     cx = cx.flatten()
     fig3.suptitle("Pull distributions overlaid", fontsize=13, fontweight="bold")
-    x_ref = np.linspace(-10, 5, 500)
+    x_ref = np.linspace(-180, 50, 500)
     cx[0].plot(x_ref, norm.pdf(x_ref), linestyle="dashed", color="black", label="N(0,1) ideal")
     cx[1].plot(x_ref, norm.pdf(x_ref), linestyle="dashed", color="black", label="N(0,1) ideal")
     colors_pT = plt.cm.viridis(np.linspace(0, 1, 7))
@@ -788,7 +798,7 @@ def Momentum_Resolution():
 
     # plot information cx
     cx[0].axvline(0, color='grey', linewidth=0.8, alpha=0.5)
-    cx[0].set_xlim(-10, 5)
+    #cx[0].set_xlim(-10, 5)
     cx[0].set_xlabel("Pull")
     cx[0].set_ylabel("Density")
     cx[0].set_title("Pull vs. p_T_true (B=0.5 T)", fontsize=10)
@@ -796,7 +806,7 @@ def Momentum_Resolution():
     cx[0].legend()
 
     cx[1].axvline(0, color='grey', linewidth=0.8, alpha=0.5)
-    cx[1].set_xlim(-10, 5)
+    #cx[1].set_xlim(-150, 5)
     cx[1].set_xlabel("Pull")
     cx[1].set_ylabel("Density")
     cx[1].set_title("Pull vs. B (p_T_true=0.3 GeV)", fontsize=10)
@@ -839,7 +849,7 @@ def Momentum_Resolution():
     dx[3].set_xlabel("B [T]")
     dx[3].set_ylabel("μ of Pull")
     dx[3].set_title(f"μ(B) of Pull", fontsize=10)
-    dx[3].set_ylim(np.min(p_T_means_pull)-1, np.max(p_T_means_pull)+1)
+    dx[3].set_ylim(np.min(B_means_pull)-1, np.max(B_means_pull)+1)
     dx[3].annotate(f'Plot 4.{4}', xy=(0.5, -0.14), xycoords='axes fraction', ha='center', va='center', fontsize=8, color='gray')
 
     # plot evolution pull/diff std
@@ -868,7 +878,7 @@ def Momentum_Resolution():
     dx[7].set_xlabel("B [T]")
     dx[7].set_ylabel("σ of Pull")
     dx[7].set_title(f"Evolution σ(B) of Pull", fontsize=10)
-    dx[7].set_ylim(np.min(p_T_stds_pull)-1, np.max(p_T_stds_pull)+1)
+    dx[7].set_ylim(np.min(B_stds_pull)-1, np.max(B_stds_pull)+1)
     dx[7].annotate(f'Plot 4.{8}', xy=(0.5, -0.14), xycoords='axes fraction', ha='center', va='center', fontsize=8, color='gray')
 
     fig.tight_layout(pad=3)
