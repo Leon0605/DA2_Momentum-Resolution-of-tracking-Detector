@@ -56,8 +56,8 @@ class Magnet:
 
     # generate change of true trajectory
     def change(self, p):
-        # p_T in GeV, B in T → rho in m, *1000 für mm
-        # sign of rho defines curvature (q > 0 → rho > 0)
+        # p_T in GeV, B in T -> rho in m, *1000 für mm
+        # sign of rho defines curvature (q > 0 -> rho > 0)
         rho = p.p_T / (0.3 * p.q * self.B) * 1000   # signed, in mm
 
         # entry at beginning of magnet
@@ -68,8 +68,8 @@ class Magnet:
         # calculate center
         # orthogonal-left towards momentumvector (sin α₀, cos α₀) is (-cos α₀, sin α₀)
         # M lays in that direction in distance rho:
-        #   q > 0 → rho > 0 → centre left  → CCW-bahn (-x)
-        #   q < 0 → rho < 0 → centre rechts → CW-bahn  (+x)
+        #   q > 0 -> rho > 0 -> centre left  -> CCW-bahn (-x)
+        #   q < 0 -> rho < 0 -> centre rechts -> CW-bahn  (+x)
         M_x = x_entry + rho * (-np.cos(alpha0)) 
         M_z = z_entry + rho *   np.sin(alpha0)
 
@@ -323,6 +323,7 @@ def Momentum_Resolution():
     
     # calculate reconstructed trajectory through magnet
     curve_z_i, curve_interpolation_reco_warmup = magnet_10_0_5.change_interpolation_2(x_line_reco_before_warmup[zbegin_index], particle_warmup.s0reco, particle_warmup.xMagnetreco, particle_warmup.sMagnetreco)
+    #curve_z_i, curve_interpolation_reco_warmup = magnet_10_0_5.change_interpolation_1(x_line_reco_before_warmup[zbegin_index], particle_warmup.s0reco, p_T_true, particle_warmup.q)
 
     # calculate reconstruction of p_T
     p_T_reco_warmup, p_T_reco_unc_warmup = magnet_10_0_5.reconstruct_momentum(particle_warmup.q, particle_warmup.s0reco, particle_warmup.sMagnetreco, particle_warmup.s0recoUncert, particle_warmup.sMagnetrecoUncert)
