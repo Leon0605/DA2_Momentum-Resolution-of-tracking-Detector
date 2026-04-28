@@ -352,7 +352,8 @@ def Momentum_Resolution():
     print()
 
     # plot of simulation
-    plt.figure(figsize=(20,12))
+    plt.figure(figsize=(20,8))
+    plt.subplots_adjust(left=0.04, right=0.96, top=0.93, bottom=0.1)
 
     # plot detector layers
     for z in z_detectors[1:]:
@@ -458,10 +459,22 @@ def Momentum_Resolution():
 
     ## d) calculate histograms of differences ##
     # prepare plots
-    fig, ax = plt.subplots(2, 5, figsize=(20, 12))
-    fig.suptitle("Resolution Histogram", fontsize=13, fontweight="bold")
-    #fig.tight_layout(pad=3.0)
-    ax = ax.flatten()
+    fig_pT, ax_pT = plt.subplots(1, 4, figsize=(20, 6))
+    fig_B, ax_B = plt.subplots(1, 4, figsize=(20, 6))
+    appendix_fig1, appendix_ax1 = plt.subplots(1, 2, figsize=(12, 6)) 
+    appendix_fig2, appendix_ax2 = plt.subplots(1, 2, figsize=(12, 6)) 
+    appendix_fig3, appendix_ax3 = plt.subplots(1, 2, figsize=(12, 6)) 
+    appendix_fig4, appendix_ax4 = plt.subplots(1, 2, figsize=(12, 6)) 
+    appendix_fig5, appendix_ax5 = plt.subplots(1, 2, figsize=(12, 6)) 
+    fig_pT.suptitle("Resolution Histogram p_T", fontsize=13, fontweight="bold", y=0.90)
+    fig_B.suptitle("Resolution Histogram B", fontsize=13, fontweight="bold", y=0.90)
+    ax_pT = ax_pT.flatten()
+    ax_B = ax_B.flatten()
+    appendix_ax1 = appendix_ax1.flatten()
+    appendix_ax2 = appendix_ax2.flatten()
+    appendix_ax3 = appendix_ax3.flatten()
+    appendix_ax4 = appendix_ax4.flatten()
+    appendix_ax5 = appendix_ax5.flatten()
 
     # save statistics of diff/pull for all p_T and B
     p_T_means_diff = []
@@ -493,23 +506,54 @@ def Momentum_Resolution():
     B_stds_diff.append(std)
 
     # plot histogram
-    sns.histplot(p_T_diff, bins="auto", stat="density", kde=True, edgecolor="white", ax=ax[0])
-    ax[0].axvline(mean, color="red", linestyle="dashed", label=f"μ: {mean:.3g}")
-    ax[0].axvline(mean + std, color="orange", linestyle=":", label=f"σ: {std:.3g}")
-    ax[0].axvline(mean - std, color="orange", linestyle=":")
-    ax[0].set_title("p_T_true=0.3 GeV", fontsize=10)
-    ax[0].set_xlabel("p_T_reco − p_T_true [GeV]")
-    ax[0].annotate(f'Plot 1.1', xy=(0.5, -0.14), xycoords='axes fraction', ha='center', va='center', fontsize=8, color='gray')
-    ax[0].set_ylabel("Density")
-    ax[0].legend()
+    sns.histplot(p_T_diff, bins="auto", stat="density", kde=True, edgecolor="white", ax=ax_pT[0])
+    ax_pT[0].axvline(mean, color="red", linestyle="dashed", label=f"μ: {mean:.3g}")
+    ax_pT[0].axvline(mean + std, color="orange", linestyle=":", label=f"σ: {std:.3g}")
+    ax_pT[0].axvline(mean - std, color="orange", linestyle=":")
+    ax_pT[0].set_title("p_T_true=0.3 GeV", fontsize=10)
+    ax_pT[0].set_xlabel("p_T_reco − p_T_true [GeV]")
+    ax_pT[0].annotate(f'Plot 1.1', xy=(0.5, -0.16), xycoords='axes fraction', ha='center', va='center', fontsize=10, color='gray')
+    ax_pT[0].set_ylabel("Density")
+    ax_pT[0].legend()
+
+    sns.histplot(p_T_diff, bins="auto", stat="density", kde=True, edgecolor="white", ax=appendix_ax1[0])
+    appendix_ax1[0].axvline(mean, color="red", linestyle="dashed", label=f"μ: {mean:.3g}")
+    appendix_ax1[0].axvline(mean + std, color="orange", linestyle=":", label=f"σ: {std:.3g}")
+    appendix_ax1[0].axvline(mean - std, color="orange", linestyle=":")
+    appendix_ax1[0].set_title("p_T_true=0.3 GeV", fontsize=10)
+    appendix_ax1[0].set_xlabel("p_T_reco − p_T_true [GeV]")
+    appendix_ax1[0].set_ylabel("Density")
+    appendix_ax1[0].legend()
+
+    sns.histplot(p_T_diff, bins="auto", stat="density", kde=True, edgecolor="white", ax=ax_B[0])
+    ax_B[0].axvline(mean, color="red", linestyle="dashed", label=f"μ: {mean:.3g}")
+    ax_B[0].axvline(mean + std, color="orange", linestyle=":", label=f"σ: {std:.3g}")
+    ax_B[0].axvline(mean - std, color="orange", linestyle=":")
+    ax_B[0].set_title("B=0.5 T", fontsize=10)
+    ax_B[0].set_xlabel("p_T_reco − p_T_true [GeV]")
+    ax_B[0].annotate(f'Plot 1.1', xy=(0.5, -0.16), xycoords='axes fraction', ha='center', va='center', fontsize=10, color='gray')
+    ax_B[0].set_ylabel("Density")
+    ax_B[0].legend()
 
 
     ## e) calculate histogram  of pulls ##
     # prepare plots
-    fig2, bx = plt.subplots(2, 5, figsize=(20, 12))
-    fig2.suptitle("Pull Histogram", fontsize=13, fontweight="bold")
-    #fig2.tight_layout(pad=3.0)
-    bx = bx.flatten()
+    fig_pT2, bx_pT = plt.subplots(1, 4, figsize=(20, 6))
+    fig_B2, bx_B = plt.subplots(1, 4, figsize=(20, 6))
+    appendix_fig6, appendix_bx1 = plt.subplots(1, 2, figsize=(12, 6)) ###############################################################################
+    appendix_fig7, appendix_bx2 = plt.subplots(1, 2, figsize=(12, 6)) 
+    appendix_fig8, appendix_bx3 = plt.subplots(1, 2, figsize=(12, 6)) 
+    appendix_fig9, appendix_bx4 = plt.subplots(1, 2, figsize=(12, 6)) 
+    appendix_fig10, appendix_bx5 = plt.subplots(1, 2, figsize=(12, 6))    
+    fig_pT2.suptitle("Pull Histogram p_T", fontsize=13, fontweight="bold", y=0.9)
+    fig_B2.suptitle("Pull Histogram B", fontsize=13, fontweight="bold", y=0.9)
+    bx_pT = bx_pT.flatten()
+    bx_B = bx_B.flatten()
+    appendix_bx3 = appendix_bx3.flatten()
+    appendix_bx4 = appendix_bx4.flatten()
+    appendix_bx1 = appendix_bx1.flatten()
+    appendix_bx2 = appendix_bx2.flatten()
+    appendix_bx5 = appendix_bx5.flatten()
 
     # calculate pull
     p_T_pulls_0_3 = pull(np.array(p_Ts_reco), p_T_true, p_Ts_unc)
@@ -531,15 +575,34 @@ def Momentum_Resolution():
     B_stds_pull.append(std)
 
     # plot histogram
-    sns.histplot(p_T_pulls_0_3, bins="auto", stat="density", kde=True, edgecolor="white", ax=bx[0])
-    bx[0].axvline(mean, color="red", linestyle="dashed", label=f"μ: {mean:.3g}")
-    bx[0].axvline(mean + std, color="orange", linestyle=":", label=f"σ: {std:.3g}")
-    bx[0].axvline(mean - std, color="orange", linestyle=":")
-    bx[0].set_title("p_T_true=0.3 GeV", fontsize=10)
-    bx[0].set_xlabel("p_T_reco pull")
-    bx[0].set_ylabel("Density")
-    bx[0].annotate(f'Plot 2.1', xy=(0.5, -0.14), xycoords='axes fraction', ha='center', va='center', fontsize=8, color='gray')
-    bx[0].legend()
+    sns.histplot(p_T_pulls_0_3, bins="auto", stat="density", kde=True, edgecolor="white", ax=bx_pT[0])
+    bx_pT[0].axvline(mean, color="red", linestyle="dashed", label=f"μ: {mean:.3g}")
+    bx_pT[0].axvline(mean + std, color="orange", linestyle=":", label=f"σ: {std:.3g}")
+    bx_pT[0].axvline(mean - std, color="orange", linestyle=":")
+    bx_pT[0].set_title("p_T_true=0.3 GeV", fontsize=10)
+    bx_pT[0].set_xlabel("p_T_reco pull")
+    bx_pT[0].set_ylabel("Density")
+    bx_pT[0].annotate(f'Plot 2.1', xy=(0.5, -0.16), xycoords='axes fraction', ha='center', va='center', fontsize=10, color='gray')
+    bx_pT[0].legend()
+
+    sns.histplot(p_T_pulls_0_3, bins="auto", stat="density", kde=True, edgecolor="white", ax=appendix_bx1[0])
+    appendix_bx1[0].axvline(mean, color="red", linestyle="dashed", label=f"μ: {mean:.3g}")
+    appendix_bx1[0].axvline(mean + std, color="orange", linestyle=":", label=f"σ: {std:.3g}")
+    appendix_bx1[0].axvline(mean - std, color="orange", linestyle=":")
+    appendix_bx1[0].set_title("p_T_true=0.3 GeV", fontsize=10)
+    appendix_bx1[0].set_xlabel("p_T_reco pull")
+    appendix_bx1[0].set_ylabel("Density")
+    appendix_bx1[0].legend()
+
+    sns.histplot(p_T_pulls_0_3, bins="auto", stat="density", kde=True, edgecolor="white", ax=bx_B[0])
+    bx_B[0].axvline(mean, color="red", linestyle="dashed", label=f"μ: {mean:.3g}")
+    bx_B[0].axvline(mean + std, color="orange", linestyle=":", label=f"σ: {std:.3g}")
+    bx_B[0].axvline(mean - std, color="orange", linestyle=":")
+    bx_B[0].set_title("B=0.5 T", fontsize=10)
+    bx_B[0].set_xlabel("p_T_reco pull")
+    bx_B[0].set_ylabel("Density")
+    bx_B[0].annotate(f'Plot 2.1', xy=(0.5, -0.16), xycoords='axes fraction', ha='center', va='center', fontsize=10, color='gray')
+    bx_B[0].legend()
 
     # prepare plots for overlay plot
     fig3, cx = plt.subplots(1, 2, figsize=(20, 12))
@@ -677,16 +740,53 @@ def Momentum_Resolution():
         p_T_stds_diff.append(std)
 
         # plot histogram
-        #sns.histplot(p_T_diff, bins="auto", stat="density", kde=True, edgecolor="white", ax=ax[index])
-        ax[index].axvline(mean, color="red", linestyle="dashed", label=f"μ: {mean:.3g}")
-        ax[index].axvline(mean + std, color="orange", linestyle=":", label=f"σ: {std:.3g}")
-        ax[index].axvline(mean - std, color="orange", linestyle=":")
-        ax[index].set_title(f"p_T_true={p_T} GeV", fontsize=10)
-        ax[index].set_xlabel("p_T_reco − p_T_true [GeV]")
-        ax[index].set_ylabel("Density")
-        ax[index].annotate(f'Plot 1.{index+1}', xy=(0.5, -0.14), xycoords='axes fraction', ha='center', va='center', fontsize=8, color='gray')
-        ax[index].legend()
+        if index < 4:
+            sns.histplot(p_T_diff, bins="auto", stat="density", kde=True, edgecolor="white", ax=ax_pT[index])
+            ax_pT[index].axvline(mean, color="red", linestyle="dashed", label=f"μ: {mean:.3g}")
+            ax_pT[index].axvline(mean + std, color="orange", linestyle=":", label=f"σ: {std:.3g}")
+            ax_pT[index].axvline(mean - std, color="orange", linestyle=":")
+            ax_pT[index].set_title(f"p_T_true={p_T} GeV", fontsize=10)
+            ax_pT[index].set_xlabel("p_T_reco − p_T_true [GeV]")
+            ax_pT[index].set_ylabel("Density")
+            ax_pT[index].annotate(f'Plot 1.{index+1}', xy=(0.5, -0.16), xycoords='axes fraction', ha='center', va='center', fontsize=10, color='gray')
+            ax_pT[index].legend()
 
+        if index in [0, 1]:
+            sns.histplot(p_T_diff, bins="auto", stat="density", kde=True, edgecolor="white", ax=appendix_ax1[index])
+            appendix_ax1[index].axvline(mean, color="red", linestyle="dashed", label=f"μ: {mean:.3g}")
+            appendix_ax1[index].axvline(mean + std, color="orange", linestyle=":", label=f"σ: {std:.3g}")
+            appendix_ax1[index].axvline(mean - std, color="orange", linestyle=":")
+            appendix_ax1[index].set_title(f"p_T_true={p_T} GeV", fontsize=10)
+            appendix_ax1[index].set_xlabel("p_T_reco − p_T_true [GeV]")
+            appendix_ax1[index].set_ylabel("Density")
+            appendix_ax1[index].legend()
+        elif index in [2, 3]:
+            sns.histplot(p_T_diff, bins="auto", stat="density", kde=True, edgecolor="white", ax=appendix_ax2[index%2])
+            appendix_ax2[index%2].axvline(mean, color="red", linestyle="dashed", label=f"μ: {mean:.3g}")
+            appendix_ax2[index%2].axvline(mean + std, color="orange", linestyle=":", label=f"σ: {std:.3g}")
+            appendix_ax2[index%2].axvline(mean - std, color="orange", linestyle=":")
+            appendix_ax2[index%2].set_title(f"p_T_true={p_T} GeV", fontsize=10)
+            appendix_ax2[index%2].set_xlabel("p_T_reco − p_T_true [GeV]")
+            appendix_ax2[index%2].set_ylabel("Density")
+            appendix_ax2[index%2].legend()
+        elif index in [4, 5]:
+            sns.histplot(p_T_diff, bins="auto", stat="density", kde=True, edgecolor="white", ax=appendix_ax3[index%2])
+            appendix_ax3[index%2].axvline(mean, color="red", linestyle="dashed", label=f"μ: {mean:.3g}")
+            appendix_ax3[index%2].axvline(mean + std, color="orange", linestyle=":", label=f"σ: {std:.3g}")
+            appendix_ax3[index%2].axvline(mean - std, color="orange", linestyle=":")
+            appendix_ax3[index%2].set_title(f"p_T_true={p_T} GeV", fontsize=10)
+            appendix_ax3[index%2].set_xlabel("p_T_reco − p_T_true [GeV]")
+            appendix_ax3[index%2].set_ylabel("Density")
+            appendix_ax3[index%2].legend()
+        elif index in [6]:
+            sns.histplot(p_T_diff, bins="auto", stat="density", kde=True, edgecolor="white", ax=appendix_ax4[index%2])
+            appendix_ax4[index%2].axvline(mean, color="red", linestyle="dashed", label=f"μ: {mean:.3g}")
+            appendix_ax4[index%2].axvline(mean + std, color="orange", linestyle=":", label=f"σ: {std:.3g}")
+            appendix_ax4[index%2].axvline(mean - std, color="orange", linestyle=":")
+            appendix_ax4[index%2].set_title(f"p_T_true={p_T} GeV", fontsize=10)
+            appendix_ax4[index%2].set_xlabel("p_T_reco − p_T_true [GeV]")
+            appendix_ax4[index%2].set_ylabel("Density")
+            appendix_ax4[index%2].legend()
 
         ## calculate histogram  of pulls ##
         # calculate pull
@@ -707,15 +807,53 @@ def Momentum_Resolution():
         p_T_stds_pull.append(std)
 
         # plot histogram
-        sns.histplot(p_T_pulls, bins="auto", stat="density", kde=True, edgecolor="white", ax=bx[index])
-        bx[index].axvline(mean, color="red", linestyle="dashed", label=f"μ: {mean:.3g}")
-        bx[index].axvline(mean + std, color="orange", linestyle=":", label=f"σ: {std:.3g}")
-        bx[index].axvline(mean - std, color="orange", linestyle=":")
-        bx[index].set_title(f"p_T_true={p_T} GeV", fontsize=10)
-        bx[index].set_xlabel("p_T_reco pull")
-        bx[index].set_ylabel("Density")
-        bx[index].annotate(f'Plot 2.{index+1}', xy=(0.5, -0.14), xycoords='axes fraction', ha='center', va='center', fontsize=8, color='gray')
-        bx[index].legend()
+        if index < 4:
+            sns.histplot(p_T_pulls, bins="auto", stat="density", kde=True, edgecolor="white", ax=bx_pT[index])
+            bx_pT[index].axvline(mean, color="red", linestyle="dashed", label=f"μ: {mean:.3g}")
+            bx_pT[index].axvline(mean + std, color="orange", linestyle=":", label=f"σ: {std:.3g}")
+            bx_pT[index].axvline(mean - std, color="orange", linestyle=":")
+            bx_pT[index].set_title(f"p_T_true={p_T} GeV", fontsize=10)
+            bx_pT[index].set_xlabel("p_T_reco pull")
+            bx_pT[index].set_ylabel("Density")
+            bx_pT[index].annotate(f'Plot 2.{index+1}', xy=(0.5, -0.16), xycoords='axes fraction', ha='center', va='center', fontsize=10, color='gray')
+            bx_pT[index].legend()
+        
+        if index in [0, 1]:
+            sns.histplot(p_T_pulls, bins="auto", stat="density", kde=True, edgecolor="white", ax=appendix_bx1[index])
+            appendix_bx1[index].axvline(mean, color="red", linestyle="dashed", label=f"μ: {mean:.3g}")
+            appendix_bx1[index].axvline(mean + std, color="orange", linestyle=":", label=f"σ: {std:.3g}")
+            appendix_bx1[index].axvline(mean - std, color="orange", linestyle=":")
+            appendix_bx1[index].set_title(f"p_T_true={p_T} GeV", fontsize=10)
+            appendix_bx1[index].set_xlabel("p_T_reco pull")
+            appendix_bx1[index].set_ylabel("Density")
+            appendix_bx1[index].legend()
+        elif index in [2, 3]:
+            sns.histplot(p_T_pulls, bins="auto", stat="density", kde=True, edgecolor="white", ax=appendix_bx2[index%2])
+            appendix_bx2[index%2].axvline(mean, color="red", linestyle="dashed", label=f"μ: {mean:.3g}")
+            appendix_bx2[index%2].axvline(mean + std, color="orange", linestyle=":", label=f"σ: {std:.3g}")
+            appendix_bx2[index%2].axvline(mean - std, color="orange", linestyle=":")
+            appendix_bx2[index%2].set_title(f"p_T_true={p_T} GeV", fontsize=10)
+            appendix_bx2[index%2].set_xlabel("p_T_reco pull")
+            appendix_bx2[index%2].set_ylabel("Density")
+            appendix_bx2[index%2].legend()
+        elif index in [4, 5]:
+            sns.histplot(p_T_pulls, bins="auto", stat="density", kde=True, edgecolor="white", ax=appendix_bx3[index%2])
+            appendix_bx3[index%2].axvline(mean, color="red", linestyle="dashed", label=f"μ: {mean:.3g}")
+            appendix_bx3[index%2].axvline(mean + std, color="orange", linestyle=":", label=f"σ: {std:.3g}")
+            appendix_bx3[index%2].axvline(mean - std, color="orange", linestyle=":")
+            appendix_bx3[index%2].set_title(f"p_T_true={p_T} GeV", fontsize=10)
+            appendix_bx3[index%2].set_xlabel("p_T_reco pull")
+            appendix_bx3[index%2].set_ylabel("Density")
+            appendix_bx3[index%2].legend()
+        elif index in [6]:
+            sns.histplot(p_T_pulls, bins="auto", stat="density", kde=True, edgecolor="white", ax=appendix_bx4[index%2])
+            appendix_bx4[index%2].axvline(mean, color="red", linestyle="dashed", label=f"μ: {mean:.3g}")
+            appendix_bx4[index%2].axvline(mean + std, color="orange", linestyle=":", label=f"σ: {std:.3g}")
+            appendix_bx4[index%2].axvline(mean - std, color="orange", linestyle=":")
+            appendix_bx4[index%2].set_title(f"p_T_true={p_T} GeV", fontsize=10)
+            appendix_bx4[index%2].set_xlabel("p_T_reco pull")
+            appendix_bx4[index%2].set_ylabel("Density")
+            appendix_bx4[index%2].legend()
 
         # plot kde
         cx[0].plot(x_ref, gaussian_kde(p_T_pulls)(x_ref), color=colors_pT[index], label=f"p_T={p_T} GeV (μ={mean:.3g}, σ={std:.3g})")
@@ -726,7 +864,7 @@ def Momentum_Resolution():
     B_array = [1.0,1.5,2.0]
 
     # generate 1000 particles
-    for index, B_i in enumerate(B_array, 7):
+    for index, B_i in enumerate(B_array, 1):
         magnet_10 = Magnet(L, B_i, n_before*dZ)
         particles = [particle(p_T_true) for i in range(1000)] 
         print(len(particles))
@@ -838,16 +976,35 @@ def Momentum_Resolution():
         B_stds_diff.append(std)
 
         # plot histogram
-        sns.histplot(p_T_diff, bins="auto", stat="density", kde=True, edgecolor="white", ax=ax[index])
-        ax[index].axvline(mean, color="red", linestyle="dashed", label=f"μ: {mean:.3g}")
-        ax[index].axvline(mean + std, color="orange", linestyle=":", label=f"σ: {std:.3g}")
-        ax[index].axvline(mean - std, color="orange", linestyle=":")
-        ax[index].set_title(f"B={magnet_10.B} T", fontsize=10)
-        ax[index].set_xlabel("p_T_reco − p_T_true [GeV]")
-        ax[index].set_ylabel("Density")
-        ax[index].annotate(f'Plot 1.{index+1}', xy=(0.5, -0.14), xycoords='axes fraction', ha='center', va='center', fontsize=8, color='gray')
-        ax[index].legend()
+        if index < 10:
+            sns.histplot(p_T_diff, bins="auto", stat="density", kde=True, edgecolor="white", ax=ax_B[index])
+            ax_B[index].axvline(mean, color="red", linestyle="dashed", label=f"μ: {mean:.3g}")
+            ax_B[index].axvline(mean + std, color="orange", linestyle=":", label=f"σ: {std:.3g}")
+            ax_B[index].axvline(mean - std, color="orange", linestyle=":")
+            ax_B[index].set_title(f"B={magnet_10.B} T", fontsize=10)
+            ax_B[index].set_xlabel("p_T_reco − p_T_true [GeV]")
+            ax_B[index].set_ylabel("Density")
+            ax_B[index].annotate(f'Plot 1.{index+1}', xy=(0.5, -0.16), xycoords='axes fraction', ha='center', va='center', fontsize=10, color='gray')
+            ax_B[index].legend()
 
+        if index in [1]:
+            sns.histplot(p_T_diff, bins="auto", stat="density", kde=True, edgecolor="white", ax=appendix_ax4[index%2])
+            appendix_ax4[index%2].axvline(mean, color="red", linestyle="dashed", label=f"μ: {mean:.3g}")
+            appendix_ax4[index%2].axvline(mean + std, color="orange", linestyle=":", label=f"σ: {std:.3g}")
+            appendix_ax4[index%2].axvline(mean - std, color="orange", linestyle=":")
+            appendix_ax4[index%2].set_title(f"B={magnet_10.B} T", fontsize=10)
+            appendix_ax4[index%2].set_xlabel("p_T_reco − p_T_true [GeV]")
+            appendix_ax4[index%2].set_ylabel("Density")
+            appendix_ax4[index%2].legend()
+        if index in [2, 3]:
+            sns.histplot(p_T_diff, bins="auto", stat="density", kde=True, edgecolor="white", ax=appendix_ax5[index%2])
+            appendix_ax5[index%2].axvline(mean, color="red", linestyle="dashed", label=f"μ: {mean:.3g}")
+            appendix_ax5[index%2].axvline(mean + std, color="orange", linestyle=":", label=f"σ: {std:.3g}")
+            appendix_ax5[index%2].axvline(mean - std, color="orange", linestyle=":")
+            appendix_ax5[index%2].set_title(f"B={magnet_10.B} T", fontsize=10)
+            appendix_ax5[index%2].set_xlabel("p_T_reco − p_T_true [GeV]")
+            appendix_ax5[index%2].set_ylabel("Density")
+            appendix_ax5[index%2].legend()
 
         ## calculate histogram  of pulls ##
         # calculate pull
@@ -868,18 +1025,38 @@ def Momentum_Resolution():
         B_stds_pull.append(std)
 
         # plot histogram
-        sns.histplot(p_T_pulls, bins="auto", stat="density", kde=True, edgecolor="white", ax=bx[index])
-        bx[index].axvline(mean, color="red", linestyle="dashed", label=f"μ: {mean:.3g}")
-        bx[index].axvline(mean + std, color="orange", linestyle=":", label=f"σ: {std:.3g}")
-        bx[index].axvline(mean - std, color="orange", linestyle=":")
-        bx[index].set_title(f"B={magnet_10.B} T", fontsize=10)
-        bx[index].set_xlabel("p_T_reco pull")
-        bx[index].set_ylabel("Density")
-        bx[index].annotate(f'Plot 2.{index+1}', xy=(0.5, -0.14), xycoords='axes fraction', ha='center', va='center', fontsize=8, color='gray')
-        bx[index].legend()
+        if index < 10:
+            sns.histplot(p_T_pulls, bins="auto", stat="density", kde=True, edgecolor="white", ax=bx_B[index])
+            bx_B[index].axvline(mean, color="red", linestyle="dashed", label=f"μ: {mean:.3g}")
+            bx_B[index].axvline(mean + std, color="orange", linestyle=":", label=f"σ: {std:.3g}")
+            bx_B[index].axvline(mean - std, color="orange", linestyle=":")
+            bx_B[index].set_title(f"B={magnet_10.B} T", fontsize=10)
+            bx_B[index].set_xlabel("p_T_reco pull")
+            bx_B[index].set_ylabel("Density")
+            bx_B[index].annotate(f'Plot 2.{index+1}', xy=(0.5, -0.16), xycoords='axes fraction', ha='center', va='center', fontsize=10, color='gray')
+            bx_B[index].legend()
+
+        if index in [1]:
+            sns.histplot(p_T_pulls, bins="auto", stat="density", kde=True, edgecolor="white", ax=appendix_bx4[index%2])
+            appendix_bx4[index%2].axvline(mean, color="red", linestyle="dashed", label=f"μ: {mean:.3g}")
+            appendix_bx4[index%2].axvline(mean + std, color="orange", linestyle=":", label=f"σ: {std:.3g}")
+            appendix_bx4[index%2].axvline(mean - std, color="orange", linestyle=":")
+            appendix_bx4[index%2].set_title(f"B={magnet_10.B} T", fontsize=10)
+            appendix_bx4[index%2].set_xlabel("p_T_reco pull")
+            appendix_bx4[index%2].set_ylabel("Density")
+            appendix_bx4[index%2].legend()
+        if index in [2, 3]:
+            sns.histplot(p_T_pulls, bins="auto", stat="density", kde=True, edgecolor="white", ax=appendix_bx5[index%2])
+            appendix_bx5[index%2].axvline(mean, color="red", linestyle="dashed", label=f"μ: {mean:.3g}")
+            appendix_bx5[index%2].axvline(mean + std, color="orange", linestyle=":", label=f"σ: {std:.3g}")
+            appendix_bx5[index%2].axvline(mean - std, color="orange", linestyle=":")
+            appendix_bx5[index%2].set_title(f"B={magnet_10.B} T", fontsize=10)
+            appendix_bx5[index%2].set_xlabel("p_T_reco pull")
+            appendix_bx5[index%2].set_ylabel("Density")
+            appendix_bx5[index%2].legend()
 
         # plot kde
-        cx[1].plot(x_ref, gaussian_kde(p_T_pulls)(x_ref), color=colors_B[index-7], label=f"B={magnet_10.B} T (μ={mean:.3g}, σ={std:.3g})")
+        cx[1].plot(x_ref, gaussian_kde(p_T_pulls)(x_ref), color=colors_B[index], label=f"B={magnet_10.B} T (μ={mean:.3g}, σ={std:.3g})")
 
     # plot information cx
     cx[0].axvline(0, color='grey', linewidth=0.8, alpha=0.5)
@@ -887,7 +1064,7 @@ def Momentum_Resolution():
     cx[0].set_xlabel("Pull")
     cx[0].set_ylabel("Density")
     cx[0].set_title("Pull vs. p_T_true (B=0.5 T)", fontsize=10)
-    cx[0].annotate(f'Plot 3.{1}', xy=(0.5, -0.12), xycoords='axes fraction', ha='center', va='center', fontsize=8, color='gray')
+    cx[0].annotate(f'Plot 3.{1}', xy=(0.5, -0.12), xycoords='axes fraction', ha='center', va='center', fontsize=10, color='gray')
     cx[0].legend()
 
     cx[1].axvline(0, color='grey', linewidth=0.8, alpha=0.5)
@@ -895,7 +1072,7 @@ def Momentum_Resolution():
     cx[1].set_xlabel("Pull")
     cx[1].set_ylabel("Density")
     cx[1].set_title("Pull vs. B (p_T_true=0.3 GeV)", fontsize=10)
-    cx[1].annotate(f'Plot 3.{2}', xy=(0.5, -0.12), xycoords='axes fraction', ha='center', va='center', fontsize=8, color='gray')
+    cx[1].annotate(f'Plot 3.{2}', xy=(0.5, -0.12), xycoords='axes fraction', ha='center', va='center', fontsize=10, color='gray')
     cx[1].legend()
 
     
@@ -912,28 +1089,28 @@ def Momentum_Resolution():
     dx[0].set_ylabel("μ of Diff")
     dx[0].set_title(f"μ(p_T) of Resolution", fontsize=10)
     dx[0].set_ylim(np.min(p_T_means_diff)-1, np.max(p_T_means_diff)+1)
-    dx[0].annotate(f'Plot 4.{1}', xy=(0.5, -0.14), xycoords='axes fraction', ha='center', va='center', fontsize=8, color='gray')
+    dx[0].annotate(f'Plot 4.{1}', xy=(0.5, -0.14), xycoords='axes fraction', ha='center', va='center', fontsize=10, color='gray')
 
     dx[1].plot(p_T_x_range, p_T_means_pull, color="orange")
     dx[1].set_xlabel("p_T [GeV]")
     dx[1].set_ylabel("μ of Pull")
     dx[1].set_title(f"μ(p_T) of Pull", fontsize=10)
     dx[1].set_ylim(np.min(p_T_means_pull)-1, np.max(p_T_means_pull)+1)
-    dx[1].annotate(f'Plot 4.{2}', xy=(0.5, -0.14), xycoords='axes fraction', ha='center', va='center', fontsize=8, color='gray')
+    dx[1].annotate(f'Plot 4.{2}', xy=(0.5, -0.14), xycoords='axes fraction', ha='center', va='center', fontsize=10, color='gray')
 
     dx[2].plot(B_x_range, B_means_diff, color="orange")
     dx[2].set_xlabel("B [T]")
     dx[2].set_ylabel("μ of Resolution")
     dx[2].set_title(f"μ(B) of Resolution", fontsize=10)
     dx[2].set_ylim(np.min(B_means_diff)-1, np.max(B_means_diff)+1)
-    dx[2].annotate(f'Plot 4.{3}', xy=(0.5, -0.14), xycoords='axes fraction', ha='center', va='center', fontsize=8, color='gray')
+    dx[2].annotate(f'Plot 4.{3}', xy=(0.5, -0.14), xycoords='axes fraction', ha='center', va='center', fontsize=10, color='gray')
 
     dx[3].plot(B_x_range, B_means_pull, color="orange")
     dx[3].set_xlabel("B [T]")
     dx[3].set_ylabel("μ of Pull")
     dx[3].set_title(f"μ(B) of Pull", fontsize=10)
     dx[3].set_ylim(np.min(B_means_pull)-1, np.max(B_means_pull)+1)
-    dx[3].annotate(f'Plot 4.{4}', xy=(0.5, -0.14), xycoords='axes fraction', ha='center', va='center', fontsize=8, color='gray')
+    dx[3].annotate(f'Plot 4.{4}', xy=(0.5, -0.14), xycoords='axes fraction', ha='center', va='center', fontsize=10, color='gray')
 
     # plot evolution pull/diff std
     dx[4].plot(p_T_x_range, p_T_stds_diff, color="skyblue")
@@ -941,31 +1118,43 @@ def Momentum_Resolution():
     dx[4].set_ylabel("σ of Resolution")
     dx[4].set_title(f"Evolution σ(p_T) of Resolution", fontsize=10)
     dx[4].set_ylim(np.min(p_T_stds_diff)-1, np.max(p_T_stds_diff)+1)
-    dx[4].annotate(f'Plot 4.{5}', xy=(0.5, -0.14), xycoords='axes fraction', ha='center', va='center', fontsize=8, color='gray')
+    dx[4].annotate(f'Plot 4.{5}', xy=(0.5, -0.14), xycoords='axes fraction', ha='center', va='center', fontsize=10, color='gray')
 
     dx[5].plot(p_T_x_range, p_T_stds_pull, color="skyblue")
     dx[5].set_xlabel("p_T [GeV]")
     dx[5].set_ylabel("σ of Pull")
     dx[5].set_title(f"Evolution σ(p_T) of Pull", fontsize=10)
     dx[5].set_ylim(np.min(p_T_stds_pull)-1, np.max(p_T_stds_pull)+1)
-    dx[5].annotate(f'Plot 4.{6}', xy=(0.5, -0.14), xycoords='axes fraction', ha='center', va='center', fontsize=8, color='gray')
+    dx[5].annotate(f'Plot 4.{6}', xy=(0.5, -0.14), xycoords='axes fraction', ha='center', va='center', fontsize=10, color='gray')
 
     dx[6].plot(B_x_range, B_stds_diff, color="skyblue")
     dx[6].set_xlabel("B [T]")
     dx[6].set_ylabel("σ of Resolution")
     dx[6].set_title(f"Evolution σ(B) of Resolution", fontsize=10)
     dx[6].set_ylim(np.min(B_stds_diff)-1, np.max(B_stds_diff)+1)
-    dx[6].annotate(f'Plot 4.{7}', xy=(0.5, -0.14), xycoords='axes fraction', ha='center', va='center', fontsize=8, color='gray')
+    dx[6].annotate(f'Plot 4.{7}', xy=(0.5, -0.14), xycoords='axes fraction', ha='center', va='center', fontsize=10, color='gray')
 
     dx[7].plot(B_x_range, B_stds_pull, color="skyblue")
     dx[7].set_xlabel("B [T]")
     dx[7].set_ylabel("σ of Pull")
     dx[7].set_title(f"Evolution σ(B) of Pull", fontsize=10)
     dx[7].set_ylim(np.min(B_stds_pull)-1, np.max(B_stds_pull)+1)
-    dx[7].annotate(f'Plot 4.{8}', xy=(0.5, -0.14), xycoords='axes fraction', ha='center', va='center', fontsize=8, color='gray')
+    dx[7].annotate(f'Plot 4.{8}', xy=(0.5, -0.14), xycoords='axes fraction', ha='center', va='center', fontsize=10, color='gray')
 
-    fig.tight_layout(pad=3)
-    fig2.tight_layout(pad=3)
+    fig_pT.tight_layout(pad=3)
+    fig_B.tight_layout(pad=3)
+    fig_pT2.tight_layout(pad=3)
+    fig_B2.tight_layout(pad=3)
+    appendix_fig1.tight_layout(pad=3)
+    appendix_fig2.tight_layout(pad=3)
+    appendix_fig3.tight_layout(pad=3)
+    appendix_fig4.tight_layout(pad=3)
+    appendix_fig5.tight_layout(pad=3)
+    appendix_fig6.tight_layout(pad=3)
+    appendix_fig7.tight_layout(pad=3)
+    appendix_fig8.tight_layout(pad=3)
+    appendix_fig9.tight_layout(pad=3)
+    appendix_fig10.tight_layout(pad=3)
     fig3.tight_layout(pad=3)
     fig4.tight_layout(pad=3)
     plt.show()
