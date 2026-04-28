@@ -1,6 +1,6 @@
 # DA2 Momentum Resolution of a Tracking Detector
 
-Data Analysis 2026 – Group Project I  
+Data Analysis 2 Spring Semester 2026 – Group Project I  
 University of Zurich
 
 **Authors:** Mike Buder, Siro Petrini, Leon Schwager
