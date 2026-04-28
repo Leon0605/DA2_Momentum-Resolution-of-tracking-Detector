@@ -16,7 +16,7 @@ The experiment is split into two parts:
 ## Setup
 
 ```bash
-pip install numpy scipy matplotlib seaborn
+pip install -r requirements.txt
 ```
 
 ## Usage
@@ -56,4 +56,4 @@ where $\theta_i = \arctan(s_i)$. This avoids the systematic bias introduced by t
 ## Files
 
 - `Project.py` — main simulation script
-- `report.pdf` — full lab report with derivations and results
+- `DA2_Momentum_Resolution_of_tracking_Detector_Lab_Report.pdf` ( full lab report with derivations and results )
