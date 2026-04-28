@@ -9,9 +9,9 @@ from sklearn.linear_model import LinearRegression
 
 # Experiment Setup
 n_before = 5        # number of detection planes before magnet
-n_after = 3         # number of detection planes after magnet
+n_after = 3        # number of detection planes after magnet
 dZ = 20             # distance detector planes (2cm = 20mm)
-cellWidth = 0.5     # width of detection plane cells in 100 mikrometers (1mm is 1 then, 1cm is 10)
+cellWidth = 0.05     # width of detection plane cells in 100 mikrometers (1mm is 1 then, 1cm is 10)
 L = 100             # Magnet Lenght
 B = 0.5            # strength of magnetic field in T
 
@@ -204,7 +204,7 @@ def simulation():
     s0Residuals, x0Residuals = [],[]
     pulls0, pullx0 = [], []
     for _ in range(0, 1000):
-        p = particle()
+        p = particle(0)
         ps0, px0 = run(p)
         s0Residuals.append(p.s0reco-p.s0)
         x0Residuals.append(p.x0reco-p.x0)
@@ -229,22 +229,38 @@ def simulation():
 
     print(pulls0Mean, pulls0SD, pullx0Mean, pullx0SD)
 
-    #plot_histograms(pulls0, "Pull S0")
-    #plot_histograms(pullx0, "Pull X0")
-    #plot_histograms(s0Residuals, "S0 Residuals")
-    #plot_histograms(x0Residuals, "X0 Residuals")
+    plot_histograms(pulls0, pullx0, "Pull S0", "Pull X0", "pull", "pull")
+    plot_histograms(s0Residuals, x0Residuals, "S0 Residuals", "X0 Residuals", "s0_reco - s0_true","x0_reco - x0_true")
 
-def plot_histograms(residuals, title):
-    plt.figure()
-    plt.hist(residuals, bins=50)
-    plt.title(title)
+def plot_histograms(data1,  data2, title1, title2, xlabel1, xlabel2):
+    fig, ax = plt.subplots(1,2,figsize=(8, 5))
+    sns.histplot(data1, bins="auto", stat="density", kde=True, edgecolor="white", ax=ax[0])
+    sns.histplot(data2, bins="auto", stat="density", kde=True, edgecolor="white", ax=ax[1])
+    mean1 = np.mean(data1)
+    std1 = np.std(data1, ddof=1)
+    mean2 =np.mean(data2)
+    std2 = np.std(data2, ddof=1)
+    ax[0].axvline(mean1, color="red", linestyle="dashed", label=f"μ: {mean1:.3g}")
+    ax[0].axvline(mean1 + std1, color="orange", linestyle=":", label=f"σ: {std1:.3g}")
+    ax[0].axvline(mean1 - std1, color="orange", linestyle=":")
+    ax[1].axvline(mean2, color="red", linestyle="dashed", label=f"μ: {mean2:.3g}")
+    ax[1].axvline(mean2 + std2, color="orange", linestyle=":", label=f"σ: {std2:.3g}")
+    ax[1].axvline(mean2 - std2, color="orange", linestyle=":")
+    ax[0].set_title(title1)
+    ax[0].set_xlabel(xlabel1)
+    ax[1].set_title(title2)
+    ax[1].set_xlabel(xlabel2)
+    ax[0].set_ylabel("Density")
+    ax[1].set_ylabel("Density")
+    ax[0].legend()
+    ax[1].legend()
     plt.show()
 
 def pulls0x0(p):
     pulls0 = (p.s0reco - p.s0) / p.s0recoUncert
     pullx0 = (p.x0reco - p.x0) / p.x0recoUncert
     return pulls0, pullx0
-#simulation()
+simulation()
 
 
 ##### 4 Momentum Resolution #####
@@ -661,7 +677,7 @@ def Momentum_Resolution():
         p_T_stds_diff.append(std)
 
         # plot histogram
-        sns.histplot(p_T_diff, bins="auto", stat="density", kde=True, edgecolor="white", ax=ax[index])
+        #sns.histplot(p_T_diff, bins="auto", stat="density", kde=True, edgecolor="white", ax=ax[index])
         ax[index].axvline(mean, color="red", linestyle="dashed", label=f"μ: {mean:.3g}")
         ax[index].axvline(mean + std, color="orange", linestyle=":", label=f"σ: {std:.3g}")
         ax[index].axvline(mean - std, color="orange", linestyle=":")
@@ -1120,4 +1136,4 @@ def Momentum_Resolution():
     print()
 
 # run Part 4 Momentum Resolution
-Momentum_Resolution()
+#Momentum_Resolution()
